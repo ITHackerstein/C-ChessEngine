@@ -23,17 +23,35 @@ int main(int argc, char* args[]) {
 	}
 
 	SDL_Surface *screenSurf = SDL_GetWindowSurface(window);
-	Chessboard *cb = createChessboard();
+	Chessboard *cb = Chessboard_create();
 
-	while (1) {
+	uint8_t running = 1;
+	while (running) {
 		SDL_Event evt;
 		while (SDL_PollEvent(&evt)) {
-			if (evt.type == SDL_QUIT) break;
+			switch (evt.type) {
+				case SDL_QUIT:
+				running = 0;
+				break;
+
+				case SDL_MOUSEBUTTONDOWN:
+				if (evt.button.button == SDL_BUTTON_LEFT) {
+					uint8_t col = evt.button.x * 8 / WIDTH;
+					uint8_t row = 7 - evt.button.y * 8 / HEIGHT;
+
+					MovesArray *moves = Chessboard_computePieceMoves(cb, row * 8 + col);
+					for (uint32_t i = 0; i < MovesArray_length(moves); ++i) {
+						Move move = MovesArray_getMove(moves, i);
+						printf("%d %d\n", move.src, move.dst);
+					}
+				}
+			}
 		}
 
-		drawChessboard(cb, screenSurf);
+		Chessboard_draw(cb, screenSurf);
 		SDL_UpdateWindowSurface(window);
 	}
+
 
 	SDL_DestroyWindow(window);
 
