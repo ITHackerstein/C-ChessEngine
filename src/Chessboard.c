@@ -58,7 +58,7 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Surface *surf) {
 }
 
 MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLocation) {
-	uint64_t pieceLocationMask = 1 << pieceLocation;
+	uint64_t pieceLocationMask = 1ull << pieceLocation;
 
 	uint8_t pieceType = -1;
 	for (uint8_t i = 0; i < 12; ++i) {
@@ -68,7 +68,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		}
 	}
 
-	assert(pieceType >= 0);
+	assert(pieceType <= 12);
 
 	uint64_t emptyMask = 0;
 	for (uint8_t i = 0; i < 12; ++i) emptyMask |= chessboard->bitBoard[i];
@@ -77,16 +77,31 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 	switch (pieceType) {
 		case 0:;
-		uint8_t singlePushLocation = pieceLocation + 8;
-		uint8_t doublePushLocation = singlePushLocation + 8;
+		uint8_t singlePushLocationW = pieceLocation + 8;
+		uint8_t doublePushLocationW = singlePushLocationW + 8;
 
-		uint64_t singlePushLocationMask = 1 << singlePushLocation;
-		uint64_t doublePushLocationMask = 1 << doublePushLocation;
+		uint64_t singlePushLocationMaskW = 1ull << singlePushLocationW;
+		uint64_t doublePushLocationMaskW = 1ull << doublePushLocationW;
 
-		if ((singlePushLocationMask & emptyMask) == 0) {
-			MovesArray_pushMove(moves, pieceLocation, singlePushLocation);
-			if ((doublePushLocationMask & emptyMask) == 0) {
-				MovesArray_pushMove(moves, pieceLocation, doublePushLocation);
+		if ((singlePushLocationMaskW & emptyMask) == 0) {
+			MovesArray_pushMove(moves, pieceLocation, singlePushLocationW);
+			if ((doublePushLocationMaskW & emptyMask) == 0) {
+				MovesArray_pushMove(moves, pieceLocation, doublePushLocationW);
+			}
+		}
+
+		break;
+		case 6:;
+		uint8_t singlePushLocationB = pieceLocation - 8;
+		uint8_t doublePushLocationB = singlePushLocationB - 8;
+
+		uint64_t singlePushLocationMaskB = 1ull << singlePushLocationB;
+		uint64_t doublePushLocationMaskB = 1ull << doublePushLocationB;
+
+		if ((singlePushLocationMaskB & emptyMask) == 0) {
+			MovesArray_pushMove(moves, pieceLocation, singlePushLocationB);
+			if ((doublePushLocationMaskB & emptyMask) == 0) {
+				MovesArray_pushMove(moves, pieceLocation, doublePushLocationB);
 			}
 		}
 
