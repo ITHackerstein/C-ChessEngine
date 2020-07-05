@@ -7,15 +7,19 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "Move.h"
 
 typedef struct {
 	uint64_t bitBoard[12];
 	SDL_Surface *spriteMap;
 } Chessboard;
 
-extern Chessboard *createChessboard();
-extern void drawChessboard(Chessboard *, SDL_Surface *);
+
+extern Chessboard *Chessboard_create();
+extern void Chessboard_draw(Chessboard *, SDL_Surface *);
+extern MovesArray *Chessboard_computePieceMoves(Chessboard *, uint8_t pieceLocation);
 
 #endif
