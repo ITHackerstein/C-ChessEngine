@@ -98,35 +98,26 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 	MovesArray *moves = MovesArray_create();
 
 	switch (pieceType) {
-		case 0:;
-		uint8_t singlePushLocationW = pieceLocation + 8;
-		uint8_t doublePushLocationW = singlePushLocationW + 8;
-
-		uint64_t singlePushLocationMaskW = 1ull << singlePushLocationW;
-		uint64_t doublePushLocationMaskW = 1ull << doublePushLocationW;
-
-		if ((singlePushLocationMaskW & emptyMask) == 0) {
-			MovesArray_pushMove(moves, pieceLocation, singlePushLocationW);
-			if ((doublePushLocationMaskW & emptyMask) == 0) {
-				MovesArray_pushMove(moves, pieceLocation, doublePushLocationW);
-			}
-		}
-
-		break;
+		case 0:
 		case 6:;
-		uint8_t singlePushLocationB = pieceLocation - 8;
-		uint8_t doublePushLocationB = singlePushLocationB - 8;
-
-		uint64_t singlePushLocationMaskB = 1ull << singlePushLocationB;
-		uint64_t doublePushLocationMaskB = 1ull << doublePushLocationB;
-
-		if ((singlePushLocationMaskB & emptyMask) == 0) {
-			MovesArray_pushMove(moves, pieceLocation, singlePushLocationB);
-			if ((doublePushLocationMaskB & emptyMask) == 0) {
-				MovesArray_pushMove(moves, pieceLocation, doublePushLocationB);
-			}
+		uint8_t singlePushLocation, doublePushLocation;
+		if (pieceType == 0) {
+			singlePushLocation = pieceLocation + 8;
+			doublePushLocation = singlePushLocation + 8;
+		} else {
+			singlePushLocation = pieceLocation - 8;
+			doublePushLocation = singlePushLocation - 8;
 		}
 
+		uint64_t singlePushLocationMask = 1ull << singlePushLocation;
+		uint64_t doublePushLocationMask = 1ull << doublePushLocation;
+
+		if ((singlePushLocationMask & emptyMask) == 0) {
+			MovesArray_pushMove(moves, pieceLocation, singlePushLocation);
+			if ((doublePushLocationMask & emptyMask) == 0) {
+				MovesArray_pushMove(moves, pieceLocation, doublePushLocation);
+			}
+		}
 		break;
 		default:
 		fprintf(stderr, "Not implemented '%d'\n", pieceType);
