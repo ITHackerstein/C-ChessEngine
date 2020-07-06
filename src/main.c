@@ -16,16 +16,19 @@ int main(int argc, char* args[]) {
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 
 	SDL_Window *window = SDL_CreateWindow("Chess Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
 	if (window == NULL) {
 		fprintf(stderr, "Erroring during creation of the window!: %s\n", SDL_GetError());
 		return 1;
 	}
 
-	SDL_Surface *screenSurf = SDL_GetWindowSurface(window);
-	Chessboard *cb = Chessboard_create();
+	Chessboard *cb = Chessboard_create(renderer);
 
 	uint8_t running = 1;
+	uint8_t highlightedPiece = 64;
+
 	while (running) {
 		SDL_Event evt;
 		while (SDL_PollEvent(&evt)) {
@@ -38,20 +41,18 @@ int main(int argc, char* args[]) {
 				if (evt.button.button == SDL_BUTTON_LEFT) {
 					uint8_t col = evt.button.x * 8 / WIDTH;
 					uint8_t row = 7 - evt.button.y * 8 / HEIGHT;
-
-					MovesArray *moves = Chessboard_computePieceMoves(cb, row * 8 + col);
-					for (uint32_t i = 0; i < MovesArray_length(moves); ++i) {
-						Move move = MovesArray_getMove(moves, i);
-						printf("%d %d\n", move.src, move.dst);
-					}
+					highlightedPiece = row * 8 + col;
 				}
+				break;
 			}
 		}
 
-		Chessboard_draw(cb, screenSurf);
-		SDL_UpdateWindowSurface(window);
-	}
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
+		SDL_RenderFillRect(renderer, NULL);
 
+		Chessboard_draw(cb, renderer, highlightedPiece);
+		SDL_RenderPresent(renderer);
+	}
 
 	SDL_DestroyWindow(window);
 

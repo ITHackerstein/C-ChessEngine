@@ -1,6 +1,6 @@
 #include "Chessboard.h"
 
-Chessboard *Chessboard_create() {
+Chessboard *Chessboard_create(SDL_Renderer *renderer) {
 	Chessboard *chessboard = malloc(sizeof(Chessboard));
 
 	chessboard->bitBoard[0] = 0xff00ull;               // White Pawn
@@ -16,22 +16,44 @@ Chessboard *Chessboard_create() {
 	chessboard->bitBoard[10] = 0x800000000000000ull;   // Black Queen
 	chessboard->bitBoard[11] = 0x1000000000000000ull;  // Black King
 
-	chessboard->spriteMap = IMG_Load("res/Chess_Pieces.png");
+	chessboard->spriteMap = IMG_LoadTexture(renderer, "res/Chess_Pieces.png");
 
 	return chessboard;
 }
 
-void Chessboard_draw(Chessboard *chessboard, SDL_Surface *surf) {
-	const uint32_t xScl = surf->w / 8;
-	const uint32_t yScl = surf->h / 8;
+void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t highlightedPiece) {
+	int w, h;
+	SDL_GetRendererOutputSize(renderer, &w, &h);
+
+	const uint32_t xScl = w / 8;
+	const uint32_t yScl = h / 8;
 
 	for (uint32_t j = 0; j < 8; ++j) {
 		for (uint32_t i = 0; i < 8; ++i) {
 			const SDL_Rect tileRect = {.x = xScl * i, .y = yScl * j, .w = xScl, .h = yScl};
 			if ((i + j) % 2 == 0)
-				SDL_FillRect(surf, &tileRect, SDL_MapRGB(surf->format, 0xe8, 0xeb, 0xef));
+				SDL_SetRenderDrawColor(renderer, 0xe8, 0xeb, 0xef, 0xff);
 			else
-				SDL_FillRect(surf, &tileRect, SDL_MapRGB(surf->format, 0x7d, 0x87, 0x96));
+				SDL_SetRenderDrawColor(renderer, 0x7d, 0x87, 0x96, 0xff);
+			SDL_RenderFillRect(renderer, &tileRect);
+		}
+	}
+
+	if (highlightedPiece < 64) {
+		MovesArray *moves = Chessboard_computePieceMoves(chessboard, highlightedPiece);
+
+		if (MovesArray_length(moves) >= 1) {
+			const SDL_Rect originalRect = {.x = (highlightedPiece % 8) * xScl, .y = (7 - highlightedPiece / 8) * yScl, .w = xScl, .h = yScl};
+			SDL_SetRenderDrawColor(renderer, 0xed, 0xe9, 0x91, 0x7f);
+			SDL_RenderFillRect(renderer, &originalRect);
+
+			for (uint32_t i = 0; i < MovesArray_length(moves); ++i) {
+				Move move = MovesArray_getMove(moves, i);
+
+				const SDL_Rect moveRect = {.x = (move.dst % 8) * xScl, .y = (7 - move.dst / 8) * yScl, .w = xScl, .h = yScl};
+				SDL_SetRenderDrawColor(renderer, 0x8b, 0xe5, 0x8f, 0x7f);
+				SDL_RenderFillRect(renderer, &moveRect);
+			}
 		}
 	}
 
@@ -49,7 +71,7 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Surface *surf) {
 				const SDL_Rect spriteRect = {.x = spriteX, .y = spriteY, .w = 83, .h = 83};
 				SDL_Rect dst = {.x = col * xScl, .y = row * yScl, .w = xScl, .h = yScl};
 
-				SDL_BlitScaled(chessboard->spriteMap, &spriteRect, surf, &dst);
+				SDL_RenderCopy(renderer, chessboard->spriteMap, &spriteRect, &dst);
 			}
 			++nBit;
 			position >>= 1;
@@ -68,7 +90,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		}
 	}
 
-	assert(pieceType <= 12);
+	assert(pieceType < 12);
 
 	uint64_t emptyMask = 0;
 	for (uint8_t i = 0; i < 12; ++i) emptyMask |= chessboard->bitBoard[i];

@@ -14,12 +14,12 @@
 
 typedef struct {
 	uint64_t bitBoard[12];
-	SDL_Surface *spriteMap;
+	SDL_Texture *spriteMap;
 } Chessboard;
 
 
-extern Chessboard *Chessboard_create();
-extern void Chessboard_draw(Chessboard *, SDL_Surface *);
+extern Chessboard *Chessboard_create(SDL_Renderer *);
+extern void Chessboard_draw(Chessboard *, SDL_Renderer *, uint8_t highlightedPiece);
 extern MovesArray *Chessboard_computePieceMoves(Chessboard *, uint8_t pieceLocation);
 
 #endif
