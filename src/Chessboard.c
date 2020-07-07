@@ -2,6 +2,7 @@
 
 Chessboard *Chessboard_create(SDL_Renderer *renderer) {
 	Chessboard *chessboard = malloc(sizeof(Chessboard));
+	memset(chessboard->bitBoard, 0, sizeof(uint64_t) * 12);
 
 	chessboard->bitBoard[0] = 0xff00ull;               // White Pawn
 	chessboard->bitBoard[1] = 0x81ull;                 // White Rook
@@ -22,7 +23,7 @@ Chessboard *Chessboard_create(SDL_Renderer *renderer) {
 }
 
 void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t highlightedPiece) {
-	int w, h;
+	uint32_t w, h;
 	SDL_GetRendererOutputSize(renderer, &w, &h);
 
 	const uint32_t xScl = w / 8;
@@ -40,12 +41,13 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t hig
 	}
 
 	if (highlightedPiece < 64) {
+		const SDL_Rect originalRect = {.x = (highlightedPiece % 8) * xScl, .y = (7 - highlightedPiece / 8) * yScl, .w = xScl, .h = yScl};
+		SDL_SetRenderDrawColor(renderer, 0xed, 0xe9, 0x91, 0x7f);
+		SDL_RenderFillRect(renderer, &originalRect);
+
 		MovesArray *moves = Chessboard_computePieceMoves(chessboard, highlightedPiece);
 
 		if (MovesArray_length(moves) >= 1) {
-			const SDL_Rect originalRect = {.x = (highlightedPiece % 8) * xScl, .y = (7 - highlightedPiece / 8) * yScl, .w = xScl, .h = yScl};
-			SDL_SetRenderDrawColor(renderer, 0xed, 0xe9, 0x91, 0x7f);
-			SDL_RenderFillRect(renderer, &originalRect);
 
 			for (uint32_t i = 0; i < MovesArray_length(moves); ++i) {
 				Move move = MovesArray_getMove(moves, i);
@@ -92,8 +94,11 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 	assert(pieceType < 12);
 
-	uint64_t emptyMask = 0;
-	for (uint8_t i = 0; i < 12; ++i) emptyMask |= chessboard->bitBoard[i];
+	uint64_t emptyWhiteMask = 0;
+	for (uint8_t i = 0; i < 6; ++i) emptyWhiteMask |= chessboard->bitBoard[i];
+	uint64_t emptyBlackMask = 0;
+	for (uint8_t i = 6; i < 12; ++i) emptyBlackMask |= chessboard->bitBoard[i];
+	uint64_t emptyMask = emptyWhiteMask | emptyBlackMask;
 
 	MovesArray *moves = MovesArray_create();
 
@@ -117,6 +122,28 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((doublePushLocationMask & emptyMask) == 0) {
 				MovesArray_pushMove(moves, pieceLocation, doublePushLocation);
 			}
+		}
+		break;
+		case 1:
+		case 7:;
+		uint8_t row = pieceLocation / 8;
+		uint8_t col = pieceLocation % 8;
+
+		uint64_t verticalPossibleMoves = 0;
+		for (uint8_t i = 0; i < 8; ++i) {
+			if (i != 7 - row) verticalPossibleMoves |= (1ull << col);
+			if (i < 7) verticalPossibleMoves <<= 8;
+		}
+
+		uint64_t horizontalPossibleMoves = (((1ull << 8) - 1) ^ (1ull << col)) << (row << 3);
+		uint64_t captures = (horizontalPossibleMoves | verticalPossibleMoves) & chessboard->bitBoard[8 - pieceType];
+		uint64_t movesMask = (horizontalPossibleMoves & ~emptyMask) | (verticalPossibleMoves & ~emptyMask) | captures;
+
+		uint8_t movePosition = 0;
+		while (movesMask) {
+			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
+			movesMask >>= 1;
+			movePosition++;
 		}
 		break;
 		default:

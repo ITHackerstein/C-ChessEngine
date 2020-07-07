@@ -13,7 +13,7 @@ MovesArray *MovesArray_create() {
 void MovesArray_pushMove(MovesArray *mArr, uint8_t src, uint8_t dst) {
 	if (mArr->length == mArr->capacity) {
 		mArr->capacity += 5;
-		mArr->moves = realloc(mArr, mArr->capacity * sizeof(Move));
+		mArr->moves = realloc(mArr->moves, mArr->capacity * sizeof(Move));
 	}
 
 	Move move = {.src = src, .dst = dst};
