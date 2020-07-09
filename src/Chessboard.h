@@ -14,9 +14,13 @@
 
 typedef struct {
 	uint64_t bitBoard[12];
+	uint64_t knightMoves[64];
 	SDL_Texture *spriteMap;
 } Chessboard;
 
+
+static uint8_t LS1B(uint64_t n);
+static uint8_t MS1B(uint64_t n);
 
 extern Chessboard *Chessboard_create(SDL_Renderer *);
 extern void Chessboard_draw(Chessboard *, SDL_Renderer *, uint8_t highlightedPiece);

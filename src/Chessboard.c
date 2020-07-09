@@ -1,5 +1,27 @@
 #include "Chessboard.h"
 
+static uint8_t LS1B(uint64_t n) {
+	if (n == 0) return 64;
+
+	uint8_t ls1b = 0;
+	while (n && (n & 1) == 0) {
+		n >>= 1;
+		ls1b++;
+	}
+	return ls1b;
+}
+
+static uint8_t MS1B(uint64_t n) {
+	if (n == 0) return 64;
+
+	uint8_t ms1b = 0;
+	while (n) {
+		n >>= 1;
+		if (n == 0) return ms1b;
+		ms1b++;
+	}
+}
+
 Chessboard *Chessboard_create(SDL_Renderer *renderer) {
 	Chessboard *chessboard = malloc(sizeof(Chessboard));
 	memset(chessboard->bitBoard, 0, sizeof(uint64_t) * 12);
@@ -18,6 +40,71 @@ Chessboard *Chessboard_create(SDL_Renderer *renderer) {
 	chessboard->bitBoard[11] = 0x1000000000000000ull;  // Black King
 
 	chessboard->spriteMap = IMG_LoadTexture(renderer, "res/Chess_Pieces.png");
+
+	chessboard->knightMoves[0] = 0x20400ull;
+	chessboard->knightMoves[1] = 0x50800ull;
+	chessboard->knightMoves[2] = 0xa1100ull;
+	chessboard->knightMoves[3] = 0x142200ull;
+	chessboard->knightMoves[4] = 0x284400ull;
+	chessboard->knightMoves[5] = 0x508800ull;
+	chessboard->knightMoves[6] = 0xa01000ull;
+	chessboard->knightMoves[7] = 0x402000ull;
+	chessboard->knightMoves[8] = 0x2040004ull;
+	chessboard->knightMoves[9] = 0x5080008ull;
+	chessboard->knightMoves[10] = 0xa110011ull;
+	chessboard->knightMoves[11] = 0x14220022ull;
+	chessboard->knightMoves[12] = 0x28440044ull;
+	chessboard->knightMoves[13] = 0x50880088ull;
+	chessboard->knightMoves[14] = 0xa0100010ull;
+	chessboard->knightMoves[15] = 0x40200020ull;
+	chessboard->knightMoves[16] = 0x204000402ull;
+	chessboard->knightMoves[17] = 0x508000805ull;
+	chessboard->knightMoves[18] = 0xa1100110aull;
+	chessboard->knightMoves[19] = 0x1422002214ull;
+	chessboard->knightMoves[20] = 0x2844004428ull;
+	chessboard->knightMoves[21] = 0x5088008850ull;
+	chessboard->knightMoves[22] = 0xa0100010a0ull;
+	chessboard->knightMoves[23] = 0x4020002040ull;
+	chessboard->knightMoves[24] = 0x20400040200ull;
+	chessboard->knightMoves[25] = 0x50800080500ull;
+	chessboard->knightMoves[26] = 0xa1100110a00ull;
+	chessboard->knightMoves[27] = 0x142200221400ull;
+	chessboard->knightMoves[28] = 0x284400442800ull;
+	chessboard->knightMoves[29] = 0x508800885000ull;
+	chessboard->knightMoves[30] = 0xa0100010a000ull;
+	chessboard->knightMoves[31] = 0x402000204000ull;
+	chessboard->knightMoves[32] = 0x2040004020000ull;
+	chessboard->knightMoves[33] = 0x5080008050000ull;
+	chessboard->knightMoves[34] = 0xa1100110a0000ull;
+	chessboard->knightMoves[35] = 0x14220022140000ull;
+	chessboard->knightMoves[36] = 0x28440044280000ull;
+	chessboard->knightMoves[37] = 0x50880088500000ull;
+	chessboard->knightMoves[38] = 0xa0100010a00000ull;
+	chessboard->knightMoves[39] = 0x40200020400000ull;
+	chessboard->knightMoves[40] = 0x204000402000000ull;
+	chessboard->knightMoves[41] = 0x508000805000000ull;
+	chessboard->knightMoves[42] = 0xa1100110a000000ull;
+	chessboard->knightMoves[43] = 0x1422002214000000ull;
+	chessboard->knightMoves[44] = 0x2844004428000000ull;
+	chessboard->knightMoves[45] = 0x5088008850000000ull;
+	chessboard->knightMoves[46] = 0xa0100010a0000000ull;
+	chessboard->knightMoves[47] = 0x4020002040000000ull;
+	chessboard->knightMoves[48] = 0x400040200000000ull;
+	chessboard->knightMoves[49] = 0x800080500000000ull;
+	chessboard->knightMoves[50] = 0x1100110a00000000ull;
+	chessboard->knightMoves[51] = 0x2200221400000000ull;
+	chessboard->knightMoves[52] = 0x4400442800000000ull;
+	chessboard->knightMoves[53] = 0x8800885000000000ull;
+	chessboard->knightMoves[54] = 0x100010a000000000ull;
+	chessboard->knightMoves[55] = 0x2000204000000000ull;
+	chessboard->knightMoves[56] = 0x4020000000000ull;
+	chessboard->knightMoves[57] = 0x8050000000000ull;
+	chessboard->knightMoves[58] = 0x110a0000000000ull;
+	chessboard->knightMoves[59] = 0x22140000000000ull;
+	chessboard->knightMoves[60] = 0x44280000000000ull;
+	chessboard->knightMoves[61] = 0x88500000000000ull;
+	chessboard->knightMoves[62] = 0x10a00000000000ull;
+	chessboard->knightMoves[63] = 0x20400000000000ull;
 
 	return chessboard;
 }
@@ -136,14 +223,51 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		}
 
 		uint64_t horizontalPossibleMoves = (((1ull << 8) - 1) ^ (1ull << col)) << (row << 3);
-		uint64_t captures = (horizontalPossibleMoves | verticalPossibleMoves) & chessboard->bitBoard[8 - pieceType];
-		uint64_t movesMask = (horizontalPossibleMoves & ~emptyMask) | (verticalPossibleMoves & ~emptyMask) | captures;
+
+
+		uint8_t minVert = MS1B(verticalPossibleMoves & ((1ull << (row << 3)) - 1) & emptyMask);
+
+		if (minVert == 64) minVert = col;
+		else minVert += 8;
+
+		uint8_t maxVert = LS1B(verticalPossibleMoves & (((1ull << ((7 - row) << 3)) - 1) << ((row + 1) << 3)) & emptyMask);
+
+		if (maxVert == 64) maxVert = 56 + col;
+		else maxVert -= 8;
+
+		if (maxVert - minVert + 1 != 64)
+			verticalPossibleMoves &= ((1ull << (maxVert - minVert + 1)) - 1) << minVert;
+
+		uint8_t minHoriz = MS1B(horizontalPossibleMoves & (((1ull << col) - 1) << (row << 3)) & emptyMask);
+
+		if (minHoriz == 64) minHoriz = row * 8;
+		else minHoriz++;
+
+		uint8_t maxHoriz = LS1B(horizontalPossibleMoves & (((1ull << (7 - col)) - 1) << ((row << 3) + col + 1)) & emptyMask);
+
+		if (maxHoriz == 64) maxHoriz = row * 8 + 7;
+		else maxHoriz--;
+
+		if (maxHoriz - minHoriz + 1 != 64)
+			horizontalPossibleMoves &= ((1ull << (maxHoriz - minHoriz + 1)) - 1) << minHoriz;
+
+		uint64_t movesMask = verticalPossibleMoves | horizontalPossibleMoves;
 
 		uint8_t movePosition = 0;
 		while (movesMask) {
 			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
 			movesMask >>= 1;
 			movePosition++;
+		}
+		break;
+		case 2:
+		case 8:;
+		uint8_t nBit = 0;
+		uint64_t pieceMoves = chessboard->knightMoves[pieceLocation] & ~emptyMask;
+		while (pieceMoves) {
+			if (pieceMoves & 1) MovesArray_pushMove(moves, pieceLocation, nBit);
+			pieceMoves >>= 1;
+			nBit++;
 		}
 		break;
 		default:
