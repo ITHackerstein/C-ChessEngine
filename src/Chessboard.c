@@ -388,7 +388,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		uint8_t row = pieceLocation / 8;
 		uint8_t col = pieceLocation % 8;
 
-		uint64_t movesMask, movesPosition;
+		uint64_t movesMask, movePosition;
 
 		uint64_t verticalPossibleMoves = 0;
 		for (uint8_t i = 0; i < 8; ++i) {
@@ -550,6 +550,20 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
 			movesMask >>= 1;
 			movePosition++;
+		}
+	} else if (pieceType == 5 || pieceType == 11) {
+		uint8_t row = pieceLocation / 8;
+		uint8_t col = pieceLocation % 8;
+
+		for (int8_t j = -1; j < 2; ++j) {
+			for (int8_t i = -1; i < 2; ++i) {
+				if (j == 0 && i == 0) continue;
+				if (row + j < 0 || row + j >= 8 || col + i < 0 || col + i >= 8) continue;
+
+				uint8_t movePosition = (row + j) * 8 + col + i;
+				if (((1ull << movePosition) & emptyMask) == 0)
+					MovesArray_pushMove(moves, pieceLocation, movePosition);
+			}
 		}
 	} else {
 		fprintf(stderr, "Not implemented '%d'\n", pieceType);
