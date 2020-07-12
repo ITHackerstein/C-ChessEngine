@@ -41,71 +41,6 @@ Chessboard *Chessboard_create(SDL_Renderer *renderer) {
 
 	chessboard->spriteMap = IMG_LoadTexture(renderer, "res/Chess_Pieces.png");
 
-	chessboard->knightMoves[0] = 0x20400ull;
-	chessboard->knightMoves[1] = 0x50800ull;
-	chessboard->knightMoves[2] = 0xa1100ull;
-	chessboard->knightMoves[3] = 0x142200ull;
-	chessboard->knightMoves[4] = 0x284400ull;
-	chessboard->knightMoves[5] = 0x508800ull;
-	chessboard->knightMoves[6] = 0xa01000ull;
-	chessboard->knightMoves[7] = 0x402000ull;
-	chessboard->knightMoves[8] = 0x2040004ull;
-	chessboard->knightMoves[9] = 0x5080008ull;
-	chessboard->knightMoves[10] = 0xa110011ull;
-	chessboard->knightMoves[11] = 0x14220022ull;
-	chessboard->knightMoves[12] = 0x28440044ull;
-	chessboard->knightMoves[13] = 0x50880088ull;
-	chessboard->knightMoves[14] = 0xa0100010ull;
-	chessboard->knightMoves[15] = 0x40200020ull;
-	chessboard->knightMoves[16] = 0x204000402ull;
-	chessboard->knightMoves[17] = 0x508000805ull;
-	chessboard->knightMoves[18] = 0xa1100110aull;
-	chessboard->knightMoves[19] = 0x1422002214ull;
-	chessboard->knightMoves[20] = 0x2844004428ull;
-	chessboard->knightMoves[21] = 0x5088008850ull;
-	chessboard->knightMoves[22] = 0xa0100010a0ull;
-	chessboard->knightMoves[23] = 0x4020002040ull;
-	chessboard->knightMoves[24] = 0x20400040200ull;
-	chessboard->knightMoves[25] = 0x50800080500ull;
-	chessboard->knightMoves[26] = 0xa1100110a00ull;
-	chessboard->knightMoves[27] = 0x142200221400ull;
-	chessboard->knightMoves[28] = 0x284400442800ull;
-	chessboard->knightMoves[29] = 0x508800885000ull;
-	chessboard->knightMoves[30] = 0xa0100010a000ull;
-	chessboard->knightMoves[31] = 0x402000204000ull;
-	chessboard->knightMoves[32] = 0x2040004020000ull;
-	chessboard->knightMoves[33] = 0x5080008050000ull;
-	chessboard->knightMoves[34] = 0xa1100110a0000ull;
-	chessboard->knightMoves[35] = 0x14220022140000ull;
-	chessboard->knightMoves[36] = 0x28440044280000ull;
-	chessboard->knightMoves[37] = 0x50880088500000ull;
-	chessboard->knightMoves[38] = 0xa0100010a00000ull;
-	chessboard->knightMoves[39] = 0x40200020400000ull;
-	chessboard->knightMoves[40] = 0x204000402000000ull;
-	chessboard->knightMoves[41] = 0x508000805000000ull;
-	chessboard->knightMoves[42] = 0xa1100110a000000ull;
-	chessboard->knightMoves[43] = 0x1422002214000000ull;
-	chessboard->knightMoves[44] = 0x2844004428000000ull;
-	chessboard->knightMoves[45] = 0x5088008850000000ull;
-	chessboard->knightMoves[46] = 0xa0100010a0000000ull;
-	chessboard->knightMoves[47] = 0x4020002040000000ull;
-	chessboard->knightMoves[48] = 0x400040200000000ull;
-	chessboard->knightMoves[49] = 0x800080500000000ull;
-	chessboard->knightMoves[50] = 0x1100110a00000000ull;
-	chessboard->knightMoves[51] = 0x2200221400000000ull;
-	chessboard->knightMoves[52] = 0x4400442800000000ull;
-	chessboard->knightMoves[53] = 0x8800885000000000ull;
-	chessboard->knightMoves[54] = 0x100010a000000000ull;
-	chessboard->knightMoves[55] = 0x2000204000000000ull;
-	chessboard->knightMoves[56] = 0x4020000000000ull;
-	chessboard->knightMoves[57] = 0x8050000000000ull;
-	chessboard->knightMoves[58] = 0x110a0000000000ull;
-	chessboard->knightMoves[59] = 0x22140000000000ull;
-	chessboard->knightMoves[60] = 0x44280000000000ull;
-	chessboard->knightMoves[61] = 0x88500000000000ull;
-	chessboard->knightMoves[62] = 0x10a00000000000ull;
-	chessboard->knightMoves[63] = 0x20400000000000ull;
-
 	return chessboard;
 }
 
@@ -259,16 +194,26 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			movePosition++;
 		}
 	} else if (pieceType == 2 || pieceType == 8) {
-		uint8_t movePosition = 0;
-		uint64_t pieceMoves = chessboard->knightMoves[pieceLocation] & ~emptyMask;
-		while (pieceMoves) {
-			if (pieceMoves & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
-			pieceMoves >>= 1;
-			movePosition++;
-		}
-	} else if (pieceType == 3 || pieceType == 9) {
 		uint64_t row = pieceLocation / 8;
 		uint64_t col = pieceLocation % 8;
+
+		int8_t X[8] = {1, 2, 2, 1, -1, -2, -2, -1};
+		int8_t Y[8] = {2, 1, -1, -2, -2, -1, 1, 2};
+
+		for (uint8_t idx = 0; idx < 8; ++idx) {
+			int8_t j = Y[idx];
+			int8_t i = X[idx];
+
+			if (row + j < 0 || row + j >= 8 || col + i < 0 || col + i >= 8) continue;
+
+			uint8_t movePosition = (row + j) * 8 + col + i;
+			if (((1ull << movePosition) & emptyMask) == 0)
+				MovesArray_pushMove(moves, pieceLocation, movePosition);
+		}
+
+	} else if (pieceType == 3 || pieceType == 9) {
+		uint8_t row = pieceLocation / 8;
+		uint8_t col = pieceLocation % 8;
 
 		int8_t shiftAmt;
 
