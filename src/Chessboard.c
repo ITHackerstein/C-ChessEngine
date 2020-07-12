@@ -128,20 +128,22 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t hig
 	}
 
 	if (highlightedPiece < 64) {
-		const SDL_Rect originalRect = {.x = (highlightedPiece % 8) * xScl, .y = (7 - highlightedPiece / 8) * yScl, .w = xScl, .h = yScl};
-		SDL_SetRenderDrawColor(renderer, 0xed, 0xe9, 0x91, 0x7f);
-		SDL_RenderFillRect(renderer, &originalRect);
-
 		MovesArray *moves = Chessboard_computePieceMoves(chessboard, highlightedPiece);
 
-		if (MovesArray_length(moves) >= 1) {
+		if (moves != NULL) {
+			const SDL_Rect originalRect = {.x = (highlightedPiece % 8) * xScl, .y = (7 - highlightedPiece / 8) * yScl, .w = xScl, .h = yScl};
+			SDL_SetRenderDrawColor(renderer, 0xed, 0xe9, 0x91, 0x7f);
+			SDL_RenderFillRect(renderer, &originalRect);
 
-			for (uint32_t i = 0; i < MovesArray_length(moves); ++i) {
-				Move move = MovesArray_getMove(moves, i);
+			if (MovesArray_length(moves) >= 1) {
 
-				const SDL_Rect moveRect = {.x = (move.dst % 8) * xScl, .y = (7 - move.dst / 8) * yScl, .w = xScl, .h = yScl};
-				SDL_SetRenderDrawColor(renderer, 0x8b, 0xe5, 0x8f, 0x7f);
-				SDL_RenderFillRect(renderer, &moveRect);
+				for (uint32_t i = 0; i < MovesArray_length(moves); ++i) {
+					Move move = MovesArray_getMove(moves, i);
+
+					const SDL_Rect moveRect = {.x = (move.dst % 8) * xScl, .y = (7 - move.dst / 8) * yScl, .w = xScl, .h = yScl};
+					SDL_SetRenderDrawColor(renderer, 0x8b, 0xe5, 0x8f, 0x7f);
+					SDL_RenderFillRect(renderer, &moveRect);
+				}
 			}
 		}
 	}
@@ -179,7 +181,9 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		}
 	}
 
-	assert(pieceType < 12);
+	if (pieceType >= 12) return NULL;
+
+	MovesArray *moves = MovesArray_create();
 
 	uint64_t emptyWhiteMask = 0;
 	for (uint8_t i = 0; i < 6; ++i) emptyWhiteMask |= chessboard->bitBoard[i];
@@ -187,7 +191,6 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 	for (uint8_t i = 6; i < 12; ++i) emptyBlackMask |= chessboard->bitBoard[i];
 	uint64_t emptyMask = emptyWhiteMask | emptyBlackMask;
 
-	MovesArray *moves = MovesArray_create();
 
 	if (pieceType == 0 || pieceType == 6) {
 		uint8_t singlePushLocation, doublePushLocation;
