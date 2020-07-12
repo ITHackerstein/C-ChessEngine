@@ -384,6 +384,173 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			movesMask >>= 1;
 			movePosition++;
 		}
+	} else if (pieceType == 4 || pieceType == 10) {
+		uint8_t row = pieceLocation / 8;
+		uint8_t col = pieceLocation % 8;
+
+		uint64_t movesMask, movesPosition;
+
+		uint64_t verticalPossibleMoves = 0;
+		for (uint8_t i = 0; i < 8; ++i) {
+			if (i != 7 - row) verticalPossibleMoves |= (1ull << col);
+			if (i < 7) verticalPossibleMoves <<= 8;
+		}
+
+		uint64_t horizontalPossibleMoves = (((1ull << 8) - 1) ^ (1ull << col)) << (row << 3);
+
+
+		uint8_t minVert = MS1B(verticalPossibleMoves & ((1ull << (row << 3)) - 1) & emptyMask);
+
+		if (minVert == 64) minVert = col;
+		else minVert += 8;
+
+		uint8_t maxVert = LS1B(verticalPossibleMoves & (((1ull << ((7 - row) << 3)) - 1) << ((row + 1) << 3)) & emptyMask);
+
+		if (maxVert == 64) maxVert = 56 + col;
+		else maxVert -= 8;
+
+		if (maxVert - minVert + 1 != 64)
+			verticalPossibleMoves &= ((1ull << (maxVert - minVert + 1)) - 1) << minVert;
+
+		uint8_t minHoriz = MS1B(horizontalPossibleMoves & (((1ull << col) - 1) << (row << 3)) & emptyMask);
+
+		if (minHoriz == 64) minHoriz = row * 8;
+		else minHoriz++;
+
+		uint8_t maxHoriz = LS1B(horizontalPossibleMoves & (((1ull << (7 - col)) - 1) << ((row << 3) + col + 1)) & emptyMask);
+
+		if (maxHoriz == 64) maxHoriz = row * 8 + 7;
+		else maxHoriz--;
+
+		if (maxHoriz - minHoriz + 1 != 64)
+			horizontalPossibleMoves &= ((1ull << (maxHoriz - minHoriz + 1)) - 1) << minHoriz;
+
+		movesMask = verticalPossibleMoves | horizontalPossibleMoves;
+
+		movePosition = 0;
+		while (movesMask) {
+			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
+			movesMask >>= 1;
+			movePosition++;
+		}
+
+		int8_t shiftAmt;
+
+		uint64_t leftDiagonalMoves = 0;
+
+		shiftAmt = 7 - row - col;
+		if (shiftAmt < 0) shiftAmt *= -1;
+
+		for (uint8_t j = 0; j < 8; ++j) {
+			if (7 - row > col)
+				leftDiagonalMoves |= ((1ull << j) >> shiftAmt) & 0xff;
+			else
+				leftDiagonalMoves |= ((1ull << j) << shiftAmt) & 0xff;
+
+			if (j < 7) leftDiagonalMoves <<= 8;
+		}
+		leftDiagonalMoves ^= 1ull << pieceLocation;
+
+		uint64_t rightDiagonalMoves = 0;
+
+		shiftAmt = row - col;
+		if (shiftAmt < 0) shiftAmt *= -1;
+
+		for (uint8_t j = 0; j < 8; ++j) {
+			if (row > col)
+				rightDiagonalMoves |= ((1ull << (7 - j)) >> shiftAmt) & 0xff;
+			else
+				rightDiagonalMoves |= ((1ull << (7 - j)) << shiftAmt) & 0xff;
+
+			if (j < 7) rightDiagonalMoves <<= 8;
+		}
+		rightDiagonalMoves ^= 1ull << pieceLocation;
+
+		movesMask = leftDiagonalMoves | rightDiagonalMoves;
+
+		uint64_t leftMask = 0;
+		for (uint8_t i = 0; i < 8; ++i) {
+			leftMask |= ((1ull << (7 - col)) - 1) << (col + 1);
+			if (i < 7) leftMask <<= 8;
+		}
+
+		uint64_t rightMask = 0;
+		for (uint8_t i = 0; i < 8; ++i) {
+			rightMask |= (1ull << col) - 1;
+			if (i < 7) rightMask <<= 8;
+		}
+
+		uint64_t topMask = ((1ull << ((7 - row) << 3)) - 1) << ((row + 1) << 3);
+		uint64_t bottomMask = (1ull << (row << 3)) - 1;
+
+		uint64_t botRightMovesMask = movesMask & rightMask & bottomMask;
+		uint64_t topLeftMovesMask = movesMask & leftMask & topMask;
+		uint64_t botLeftMovesMask = movesMask & leftMask & bottomMask;
+		uint64_t topRightMovesMask = movesMask & rightMask & topMask;
+
+		uint8_t leftMin = MS1B(botLeftMovesMask & emptyMask);
+		uint8_t leftMax = LS1B(topRightMovesMask & emptyMask);
+		uint8_t rightMin = MS1B(botRightMovesMask & emptyMask);
+		uint8_t rightMax = LS1B(topLeftMovesMask & emptyMask);
+
+		if (leftMin == 64) {
+			if (botLeftMovesMask == 0)
+				leftMin = pieceLocation;
+
+			if ((botLeftMovesMask & emptyMask) == 0)
+				leftMin = LS1B(leftDiagonalMoves);
+		} else {
+			leftMin += 7;
+		}
+
+		if (leftMax == 64) {
+			if (topRightMovesMask == 0)
+				leftMax = pieceLocation;
+
+			if ((topRightMovesMask & emptyMask) == 0) {
+				leftMax = MS1B(leftDiagonalMoves);
+			}
+		} else {
+			leftMax -= 7;
+		}
+
+		if (rightMin == 64) {
+			if (botRightMovesMask == 0)
+				rightMin = pieceLocation;
+
+			if ((botRightMovesMask & emptyMask) == 0)
+				rightMin = LS1B(rightDiagonalMoves);
+		} else {
+			rightMin += 9;
+		}
+
+		if (rightMax == 64) {
+			if (topLeftMovesMask == 0)
+				rightMax = pieceLocation;
+
+			if ((topLeftMovesMask & emptyMask) == 0)
+				rightMax = MS1B(rightDiagonalMoves);
+		} else {
+			rightMax -= 9;
+		}
+
+		movesMask = 0;
+		for (uint8_t pos = leftMin; pos <= leftMax; pos += 7) {
+			if (pos != pieceLocation)
+				movesMask |= (1ull << pos);
+		}
+
+		for (uint8_t pos = rightMin; pos <= rightMax; pos += 9) {
+			if (pos != pieceLocation)
+				movesMask |= (1ull << pos);
+		}
+
+		movePosition = 0;
+		while (movesMask) {
+			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
+			movesMask >>= 1;
+			movePosition++;
+		}
 	} else {
 		fprintf(stderr, "Not implemented '%d'\n", pieceType);
 	}
