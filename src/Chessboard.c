@@ -76,7 +76,10 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t hig
 					Move move = MovesArray_getMove(moves, i);
 
 					const SDL_Rect moveRect = {.x = (move.dst % 8) * xScl, .y = (7 - move.dst / 8) * yScl, .w = xScl, .h = yScl};
-					SDL_SetRenderDrawColor(renderer, 0x8b, 0xe5, 0x8f, 0x7f);
+					if (!move.isCapture)
+						SDL_SetRenderDrawColor(renderer, 0x8b, 0xe5, 0x8f, 0x7f);
+					else
+						SDL_SetRenderDrawColor(renderer, 0xdb, 0x53, 0x56, 0x7f);
 					SDL_RenderFillRect(renderer, &moveRect);
 				}
 			}
