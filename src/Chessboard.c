@@ -576,8 +576,13 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 				if (row + j < 0 || row + j >= 8 || col + i < 0 || col + i >= 8) continue;
 
 				uint8_t movePosition = (row + j) * 8 + col + i;
-				if (((1ull << movePosition) & emptyMask) == 0)
+				uint64_t movePositionMask = (1ull << movePosition);
+
+				if ((movePositionMask & emptyMask) == 0)
 					MovesArray_pushMove(moves, pieceLocation, movePosition, false);
+
+				if ((movePositionMask & emptyEnemyMask) != 0)
+					MovesArray_pushMove(moves, pieceLocation, movePosition, true);
 			}
 		}
 	} else {
