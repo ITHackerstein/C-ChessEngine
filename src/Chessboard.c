@@ -144,10 +144,29 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		uint64_t doublePushLocationMask = 1ull << doublePushLocation;
 
 		if ((singlePushLocationMask & emptyMask) == 0) {
-			MovesArray_pushMove(moves, pieceLocation, singlePushLocation);
+			MovesArray_pushMove(moves, pieceLocation, singlePushLocation, false);
 			if ((doublePushLocationMask & emptyMask) == 0) {
-				MovesArray_pushMove(moves, pieceLocation, doublePushLocation);
+				MovesArray_pushMove(moves, pieceLocation, doublePushLocation, false);
 			}
+		}
+
+		uint8_t leftCaptureLocation, rightCaptureLocation;
+		if (pieceType == 0) {
+			leftCaptureLocation = pieceLocation + 7;
+			rightCaptureLocation = pieceLocation + 9;
+		} else {
+			leftCaptureLocation = pieceLocation - 7;
+			rightCaptureLocation = pieceLocation - 9;
+		}
+
+		uint64_t emptyEnemyMask = pieceType == 0 ? emptyBlackMask : emptyWhiteMask;
+
+		if (leftCaptureLocation / 8 != pieceLocation / 8) {
+			if (((1ull << leftCaptureLocation) & emptyEnemyMask) != 0) MovesArray_pushMove(moves, pieceLocation, leftCaptureLocation, true);
+		}
+
+		if (rightCaptureLocation / 8 != pieceLocation / 8) {
+			if (((1ull << rightCaptureLocation) & emptyEnemyMask) != 0) MovesArray_pushMove(moves, pieceLocation, rightCaptureLocation, true);
 		}
 	} else if (pieceType == 1 || pieceType == 7) {
 		uint8_t row = pieceLocation / 8;
@@ -192,7 +211,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		uint8_t movePosition = 0;
 		while (movesMask) {
-			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
+			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 			movesMask >>= 1;
 			movePosition++;
 		}
@@ -211,7 +230,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 			uint8_t movePosition = (row + j) * 8 + col + i;
 			if (((1ull << movePosition) & emptyMask) == 0)
-				MovesArray_pushMove(moves, pieceLocation, movePosition);
+				MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 		}
 
 	} else if (pieceType == 3 || pieceType == 9) {
@@ -331,7 +350,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		uint8_t movePosition = 0;
 		while (movesMask) {
-			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
+			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 			movesMask >>= 1;
 			movePosition++;
 		}
@@ -380,7 +399,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		movePosition = 0;
 		while (movesMask) {
-			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
+			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 			movesMask >>= 1;
 			movePosition++;
 		}
@@ -498,7 +517,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		movePosition = 0;
 		while (movesMask) {
-			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition);
+			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 			movesMask >>= 1;
 			movePosition++;
 		}
@@ -513,7 +532,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 				uint8_t movePosition = (row + j) * 8 + col + i;
 				if (((1ull << movePosition) & emptyMask) == 0)
-					MovesArray_pushMove(moves, pieceLocation, movePosition);
+					MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 			}
 		}
 	} else {
