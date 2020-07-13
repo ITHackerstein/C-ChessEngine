@@ -129,6 +129,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 	for (uint8_t i = 6; i < 12; ++i) emptyBlackMask |= chessboard->bitBoard[i];
 	uint64_t emptyMask = emptyWhiteMask | emptyBlackMask;
 
+	uint64_t emptyEnemyMask = pieceType < 6 ? emptyBlackMask : emptyWhiteMask;
 
 	if (pieceType == 0 || pieceType == 6) {
 		uint8_t singlePushLocation, doublePushLocation;
@@ -158,8 +159,6 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			leftCaptureLocation = pieceLocation - 7;
 			rightCaptureLocation = pieceLocation - 9;
 		}
-
-		uint64_t emptyEnemyMask = pieceType == 0 ? emptyBlackMask : emptyWhiteMask;
 
 		if (leftCaptureLocation / 8 != pieceLocation / 8) {
 			if (((1ull << leftCaptureLocation) & emptyEnemyMask) != 0) MovesArray_pushMove(moves, pieceLocation, leftCaptureLocation, true);
@@ -218,8 +217,6 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			movePosition++;
 		}
 
-		uint64_t emptyEnemyMask = pieceType == 1 ? emptyBlackMask : emptyWhiteMask;
-
 		uint64_t capturesMask = (((1ull << minVert) >> 8) | ((1ull << maxVert) << 8) | ((1ull << minHoriz) >> 1) | ((1ull << maxHoriz) << 1)) & emptyEnemyMask;
 
 		movePosition = 0;
@@ -243,10 +240,14 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if (row + j < 0 || row + j >= 8 || col + i < 0 || col + i >= 8) continue;
 
 			uint8_t movePosition = (row + j) * 8 + col + i;
-			if (((1ull << movePosition) & emptyMask) == 0)
-				MovesArray_pushMove(moves, pieceLocation, movePosition, false);
-		}
+			uint64_t movePositionMask = 1ull << movePosition;
 
+			if ((movePositionMask & emptyMask) == 0)
+				MovesArray_pushMove(moves, pieceLocation, movePosition, false);
+
+			if ((movePositionMask & emptyEnemyMask) != 0)
+				MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+		}
 	} else if (pieceType == 3 || pieceType == 9) {
 		uint8_t row = pieceLocation / 8;
 		uint8_t col = pieceLocation % 8;
@@ -310,6 +311,8 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		uint8_t rightMin = MS1B(botRightMovesMask & emptyMask);
 		uint8_t rightMax = LS1B(topLeftMovesMask & emptyMask);
 
+		uint64_t capturesMask = 0;
+
 		if (leftMin == 64) {
 			if (botLeftMovesMask == 0)
 				leftMin = pieceLocation;
@@ -317,6 +320,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((botLeftMovesMask & emptyMask) == 0)
 				leftMin = LS1B(leftDiagonalMoves);
 		} else {
+			capturesMask |= (1ull << leftMin) & emptyEnemyMask;
 			leftMin += 7;
 		}
 
@@ -328,6 +332,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 				leftMax = MS1B(leftDiagonalMoves);
 			}
 		} else {
+			capturesMask |= (1ull << leftMax) & emptyEnemyMask;
 			leftMax -= 7;
 		}
 
@@ -338,6 +343,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((botRightMovesMask & emptyMask) == 0)
 				rightMin = LS1B(rightDiagonalMoves);
 		} else {
+			capturesMask |= (1ull << rightMin) & emptyEnemyMask;
 			rightMin += 9;
 		}
 
@@ -348,6 +354,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((topLeftMovesMask & emptyMask) == 0)
 				rightMax = MS1B(rightDiagonalMoves);
 		} else {
+			capturesMask |= (1ull << rightMax) & emptyEnemyMask;
 			rightMax -= 9;
 		}
 
@@ -362,10 +369,19 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 				movesMask |= (1ull << pos);
 		}
 
-		uint8_t movePosition = 0;
+		uint8_t movePosition;
+
+		movePosition = 0;
 		while (movesMask) {
 			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 			movesMask >>= 1;
+			movePosition++;
+		}
+
+		movePosition = 0;
+		while (capturesMask) {
+			if (capturesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+			capturesMask >>= 1;
 			movePosition++;
 		}
 	} else if (pieceType == 4 || pieceType == 10) {
@@ -410,6 +426,10 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			horizontalPossibleMoves &= ((1ull << (maxHoriz - minHoriz + 1)) - 1) << minHoriz;
 
 		movesMask = verticalPossibleMoves | horizontalPossibleMoves;
+
+		uint64_t capturesMask;
+
+		capturesMask = (((1ull << minVert) >> 8) | ((1ull << maxVert) << 8) | ((1ull << minHoriz) >> 1) | ((1ull << maxHoriz) << 1)) & emptyEnemyMask;
 
 		movePosition = 0;
 		while (movesMask) {
@@ -484,6 +504,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((botLeftMovesMask & emptyMask) == 0)
 				leftMin = LS1B(leftDiagonalMoves);
 		} else {
+			capturesMask |= (1ull << leftMin) & emptyEnemyMask;
 			leftMin += 7;
 		}
 
@@ -495,6 +516,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 				leftMax = MS1B(leftDiagonalMoves);
 			}
 		} else {
+			capturesMask |= (1ull << leftMax) & emptyEnemyMask;
 			leftMax -= 7;
 		}
 
@@ -505,6 +527,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((botRightMovesMask & emptyMask) == 0)
 				rightMin = LS1B(rightDiagonalMoves);
 		} else {
+			capturesMask |= (1ull << rightMin) & emptyEnemyMask;
 			rightMin += 9;
 		}
 
@@ -515,6 +538,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((topLeftMovesMask & emptyMask) == 0)
 				rightMax = MS1B(rightDiagonalMoves);
 		} else {
+			capturesMask |= (1ull << rightMax) & emptyEnemyMask;
 			rightMax -= 9;
 		}
 
@@ -533,6 +557,13 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		while (movesMask) {
 			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 			movesMask >>= 1;
+			movePosition++;
+		}
+
+		movePosition = 0;
+		while (capturesMask) {
+			if (capturesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+			capturesMask >>= 1;
 			movePosition++;
 		}
 	} else if (pieceType == 5 || pieceType == 11) {
