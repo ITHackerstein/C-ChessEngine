@@ -10,13 +10,13 @@ MovesArray *MovesArray_create() {
 	return movesArray;
 }
 
-void MovesArray_pushMove(MovesArray *mArr, uint8_t src, uint8_t dst) {
+void MovesArray_pushMove(MovesArray *mArr, uint8_t src, uint8_t dst, bool isCapture) {
 	if (mArr->length == mArr->capacity) {
 		mArr->capacity += 5;
 		mArr->moves = realloc(mArr->moves, mArr->capacity * sizeof(Move));
 	}
 
-	Move move = {.src = src, .dst = dst};
+	Move move = {.src = src, .dst = dst, .isCapture = isCapture};
 	mArr->moves[mArr->length++] = move;
 }
 
