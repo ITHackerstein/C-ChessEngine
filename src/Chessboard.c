@@ -209,12 +209,26 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		uint64_t movesMask = verticalPossibleMoves | horizontalPossibleMoves;
 
-		uint8_t movePosition = 0;
+		uint8_t movePosition;
+
+		movePosition = 0;
 		while (movesMask) {
 			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
 			movesMask >>= 1;
 			movePosition++;
 		}
+
+		uint64_t emptyEnemyMask = pieceType == 1 ? emptyBlackMask : emptyWhiteMask;
+
+		uint64_t capturesMask = (((1ull << minVert) >> 8) | ((1ull << maxVert) << 8) | ((1ull << minHoriz) >> 1) | ((1ull << maxHoriz) << 1)) & emptyEnemyMask;
+
+		movePosition = 0;
+		while (capturesMask) {
+			if (capturesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+			capturesMask >>= 1;
+			movePosition++;
+		}
+
 	} else if (pieceType == 2 || pieceType == 8) {
 		uint64_t row = pieceLocation / 8;
 		uint64_t col = pieceLocation % 8;
