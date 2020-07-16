@@ -23,7 +23,9 @@ static uint8_t LS1B(uint64_t n);
 static uint8_t MS1B(uint64_t n);
 
 extern Chessboard *Chessboard_create(SDL_Renderer *);
-extern void Chessboard_draw(Chessboard *, SDL_Renderer *, uint8_t highlightedPiece);
+extern void Chessboard_draw(Chessboard *, SDL_Renderer *, uint8_t highlightedPiece, MovesArray *highlightedPieceMoves);
 extern MovesArray *Chessboard_computePieceMoves(Chessboard *, uint8_t pieceLocation);
+extern bool Chessboard_isHighlightable(Chessboard *, uint8_t pieceLocation, uint8_t turn);
+extern void Chessboard_applyMove(Move, Chessboard *);
 
 #endif

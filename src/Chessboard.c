@@ -44,7 +44,7 @@ Chessboard *Chessboard_create(SDL_Renderer *renderer) {
 	return chessboard;
 }
 
-void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t highlightedPiece) {
+void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t highlightedPiece, MovesArray *highlightedPieceMoves) {
 	uint32_t w, h;
 	SDL_GetRendererOutputSize(renderer, &w, &h);
 
@@ -62,26 +62,21 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t hig
 		}
 	}
 
-	if (highlightedPiece < 64) {
-		MovesArray *moves = Chessboard_computePieceMoves(chessboard, highlightedPiece);
+	if (highlightedPieceMoves != NULL) {
+		const SDL_Rect originalRect = {.x = (highlightedPiece % 8) * xScl, .y = (7 - highlightedPiece / 8) * yScl, .w = xScl, .h = yScl};
+		SDL_SetRenderDrawColor(renderer, 0xed, 0xe9, 0x91, 0x7f);
+		SDL_RenderFillRect(renderer, &originalRect);
 
-		if (moves != NULL) {
-			const SDL_Rect originalRect = {.x = (highlightedPiece % 8) * xScl, .y = (7 - highlightedPiece / 8) * yScl, .w = xScl, .h = yScl};
-			SDL_SetRenderDrawColor(renderer, 0xed, 0xe9, 0x91, 0x7f);
-			SDL_RenderFillRect(renderer, &originalRect);
+		if (MovesArray_length(highlightedPieceMoves) >= 1) {
+			for (uint32_t i = 0; i < MovesArray_length(highlightedPieceMoves); ++i) {
+				Move move = MovesArray_getMove(highlightedPieceMoves, i);
 
-			if (MovesArray_length(moves) >= 1) {
-
-				for (uint32_t i = 0; i < MovesArray_length(moves); ++i) {
-					Move move = MovesArray_getMove(moves, i);
-
-					const SDL_Rect moveRect = {.x = (move.dst % 8) * xScl, .y = (7 - move.dst / 8) * yScl, .w = xScl, .h = yScl};
-					if (!move.isCapture)
-						SDL_SetRenderDrawColor(renderer, 0x8b, 0xe5, 0x8f, 0x7f);
-					else
-						SDL_SetRenderDrawColor(renderer, 0xdb, 0x53, 0x56, 0x7f);
-					SDL_RenderFillRect(renderer, &moveRect);
-				}
+				const SDL_Rect moveRect = {.x = (move.dst % 8) * xScl, .y = (7 - move.dst / 8) * yScl, .w = xScl, .h = yScl};
+				if (!move.isCapture)
+					SDL_SetRenderDrawColor(renderer, 0x8b, 0xe5, 0x8f, 0x7f);
+				else
+					SDL_SetRenderDrawColor(renderer, 0xdb, 0x53, 0x56, 0x7f);
+				SDL_RenderFillRect(renderer, &moveRect);
 			}
 		}
 	}
@@ -628,4 +623,21 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 	}
 
 	return moves;
+}
+
+bool Chessboard_isHighlightable(Chessboard *chessboard, uint8_t pieceLocation, uint8_t turn) {
+	uint8_t colorOffset = turn ? 6 : 0;
+	uint64_t pieceLocationMask = 1ull << pieceLocation;
+
+	for (uint8_t i = 0; i < 6; ++i) {
+		if (chessboard->bitBoard[colorOffset + i] & pieceLocationMask)
+			return true;
+	}
+	return false;
+}
+
+void Chessboard_applyMove(Move move, Chessboard *chessboard) {
+	// FIXME: Add support for captures
+	uint64_t moveMask = (1ull << move.src) | (1ull << move.dst);
+	chessboard->bitBoard[move.srcPieceType] ^= moveMask;
 }
