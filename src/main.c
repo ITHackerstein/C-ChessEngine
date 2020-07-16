@@ -56,6 +56,7 @@ int main(int argc, char* args[]) {
 								highlightedPiece = 64;
 								MovesArray_destroy(highlightedPieceMoves);
 								highlightedPieceMoves = NULL;
+								turn = !turn;
 								quitFromSwitch = true;
 								break;
 							}
