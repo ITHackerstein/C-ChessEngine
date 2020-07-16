@@ -29,3 +29,11 @@ Move MovesArray_getMove(MovesArray *mArr, uint32_t index) {
 uint32_t MovesArray_length(MovesArray *mArr) {
 	return mArr->length;
 }
+
+void *MovesArray_destroy(MovesArray *mArr) {
+	free(mArr->moves);
+	mArr->moves = NULL;
+
+	free(mArr);
+	mArr = NULL;
+}
