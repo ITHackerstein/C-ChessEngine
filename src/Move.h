@@ -7,10 +7,14 @@
 #include <assert.h>
 
 typedef struct {
+	uint8_t srcPieceType;
+
 	uint8_t src;
 	uint8_t dst;
+
 	bool isCapture;
 } Move;
+
 
 typedef struct {
 	Move *moves;
@@ -19,7 +23,7 @@ typedef struct {
 } MovesArray;
 
 extern MovesArray *MovesArray_create();
-extern void MovesArray_pushMove(MovesArray *, uint8_t src, uint8_t dst, bool isCapture);
+extern void MovesArray_pushMove(MovesArray *, Move);
 extern Move MovesArray_getMove(MovesArray *, uint32_t index);
 extern uint32_t MovesArray_length(MovesArray *);
 extern void *MovesArray_destroy(MovesArray *);
