@@ -138,7 +138,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		uint64_t singlePushLocationMask = 1ull << singlePushLocation;
 		uint64_t doublePushLocationMask = 1ull << doublePushLocation;
-		uint64_t initialRankMask = ((1ull << 8) - 1) << (pieceType == 0 ? 8 : 30);
+		uint64_t initialRankMask = ((1ull << 8) - 1) << (pieceType == 0 ? 8 : 48);
 
 		if ((singlePushLocationMask & emptyMask) == 0) {
 			Move singlePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = singlePushLocation, .isCapture = false};
@@ -637,7 +637,10 @@ bool Chessboard_isHighlightable(Chessboard *chessboard, uint8_t pieceLocation, u
 }
 
 void Chessboard_applyMove(Move move, Chessboard *chessboard) {
-	// FIXME: Add support for captures
+	if (move.isCapture) {
+		uint64_t captureMask = ~(1ull << move.dst);
+		for (uint8_t i = 0; i < 12; ++i) chessboard->bitBoard[i] &= captureMask;
+	}
 	uint64_t moveMask = (1ull << move.src) | (1ull << move.dst);
 	chessboard->bitBoard[move.srcPieceType] ^= moveMask;
 }
