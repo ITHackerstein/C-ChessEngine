@@ -258,7 +258,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			}
 
 			if ((movePositionMask & emptyEnemyMask) != 0) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true};
 				MovesArray_pushMove(moves, move);
 			}
 		}
