@@ -145,9 +145,11 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		uint64_t doublePushLocationMask = 1ull << doublePushLocation;
 
 		if ((singlePushLocationMask & emptyMask) == 0) {
-			MovesArray_pushMove(moves, pieceLocation, singlePushLocation, false);
+			Move singlePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = singlePushLocation, .isCapture = false};
+			MovesArray_pushMove(moves, singlePushMove);
 			if ((doublePushLocationMask & emptyMask) == 0) {
-				MovesArray_pushMove(moves, pieceLocation, doublePushLocation, false);
+				Move doublePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = doublePushLocation, .isCapture = false};
+				MovesArray_pushMove(moves, doublePushMove);
 			}
 		}
 
@@ -161,11 +163,17 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		}
 
 		if (leftCaptureLocation / 8 != pieceLocation / 8) {
-			if (((1ull << leftCaptureLocation) & emptyEnemyMask) != 0) MovesArray_pushMove(moves, pieceLocation, leftCaptureLocation, true);
+			if (((1ull << leftCaptureLocation) & emptyEnemyMask) != 0) {
+				Move leftCaptureMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = leftCaptureLocation, .isCapture = true};
+				MovesArray_pushMove(moves, leftCaptureMove);
+			}
 		}
 
 		if (rightCaptureLocation / 8 != pieceLocation / 8) {
-			if (((1ull << rightCaptureLocation) & emptyEnemyMask) != 0) MovesArray_pushMove(moves, pieceLocation, rightCaptureLocation, true);
+			if (((1ull << rightCaptureLocation) & emptyEnemyMask) != 0) {
+				Move rightCaptureMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = rightCaptureLocation, .isCapture = true};
+				MovesArray_pushMove(moves, rightCaptureMove);
+			}
 		}
 	} else if (pieceType == 1 || pieceType == 7) {
 		uint8_t row = pieceLocation / 8;
@@ -212,7 +220,10 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		movePosition = 0;
 		while (movesMask) {
-			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
+			if (movesMask & 1) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false};
+				MovesArray_pushMove(moves, move);
+			}
 			movesMask >>= 1;
 			movePosition++;
 		}
@@ -221,7 +232,10 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		movePosition = 0;
 		while (capturesMask) {
-			if (capturesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+			if (capturesMask & 1) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true};
+				MovesArray_pushMove(moves, move);
+			}
 			capturesMask >>= 1;
 			movePosition++;
 		}
@@ -242,11 +256,15 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			uint8_t movePosition = (row + j) * 8 + col + i;
 			uint64_t movePositionMask = 1ull << movePosition;
 
-			if ((movePositionMask & emptyMask) == 0)
-				MovesArray_pushMove(moves, pieceLocation, movePosition, false);
+			if ((movePositionMask & emptyMask) == 0) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false};
+				MovesArray_pushMove(moves, move);
+			}
 
-			if ((movePositionMask & emptyEnemyMask) != 0)
-				MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+			if ((movePositionMask & emptyEnemyMask) != 0) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false};
+				MovesArray_pushMove(moves, move);
+			}
 		}
 	} else if (pieceType == 3 || pieceType == 9) {
 		uint8_t row = pieceLocation / 8;
@@ -373,14 +391,20 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		movePosition = 0;
 		while (movesMask) {
-			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
+			if (movesMask & 1) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false};
+				MovesArray_pushMove(moves, move);
+			}
 			movesMask >>= 1;
 			movePosition++;
 		}
 
 		movePosition = 0;
 		while (capturesMask) {
-			if (capturesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+			if (capturesMask & 1) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true};
+				MovesArray_pushMove(moves, move);
+			}
 			capturesMask >>= 1;
 			movePosition++;
 		}
@@ -433,7 +457,10 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		movePosition = 0;
 		while (movesMask) {
-			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
+			if (movesMask & 1) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false};
+				MovesArray_pushMove(moves, move);
+			}
 			movesMask >>= 1;
 			movePosition++;
 		}
@@ -555,14 +582,20 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		movePosition = 0;
 		while (movesMask) {
-			if (movesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, false);
+			if (movesMask & 1) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false};
+				MovesArray_pushMove(moves, move);
+			}
 			movesMask >>= 1;
 			movePosition++;
 		}
 
 		movePosition = 0;
 		while (capturesMask) {
-			if (capturesMask & 1) MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+			if (capturesMask & 1) {
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true};
+				MovesArray_pushMove(moves, move);
+			}
 			capturesMask >>= 1;
 			movePosition++;
 		}
@@ -578,11 +611,15 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 				uint8_t movePosition = (row + j) * 8 + col + i;
 				uint64_t movePositionMask = (1ull << movePosition);
 
-				if ((movePositionMask & emptyMask) == 0)
-					MovesArray_pushMove(moves, pieceLocation, movePosition, false);
+				if ((movePositionMask & emptyMask) == 0) {
+					Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false};
+					MovesArray_pushMove(moves, move);
+				}
 
-				if ((movePositionMask & emptyEnemyMask) != 0)
-					MovesArray_pushMove(moves, pieceLocation, movePosition, true);
+				if ((movePositionMask & emptyEnemyMask) != 0) {
+					Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true};
+					MovesArray_pushMove(moves, move);
+				}
 			}
 		}
 	} else {
