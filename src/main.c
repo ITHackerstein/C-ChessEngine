@@ -2,6 +2,7 @@
 #include <SDL2/SDL_image.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "Chessboard.h"
 
 const uint32_t WIDTH = 600;
@@ -26,8 +27,11 @@ int main(int argc, char* args[]) {
 
 	Chessboard *cb = Chessboard_create(renderer);
 
-	uint8_t running = 1;
+	bool running = true;
+	uint8_t turn = 0;
+
 	uint8_t highlightedPiece = 64;
+	MovesArray *highlightedPieceMoves = NULL;
 
 	while (running) {
 		SDL_Event evt;
@@ -41,7 +45,35 @@ int main(int argc, char* args[]) {
 				if (evt.button.button == SDL_BUTTON_LEFT) {
 					uint8_t col = evt.button.x * 8 / WIDTH;
 					uint8_t row = 7 - evt.button.y * 8 / HEIGHT;
-					highlightedPiece = row * 8 + col;
+					uint8_t pos = row * 8 + col;
+
+					bool quitFromSwitch = false;
+					if (highlightedPieceMoves != NULL) {
+						for (uint8_t i = 0; i < MovesArray_length(highlightedPieceMoves); ++i) {
+							Move move = MovesArray_getMove(highlightedPieceMoves, i);
+							if (move.dst == pos) {
+								Chessboard_applyMove(move, cb);
+								highlightedPiece = 64;
+								MovesArray_destroy(highlightedPieceMoves);
+								highlightedPieceMoves = NULL;
+								quitFromSwitch = true;
+								break;
+							}
+						}
+					}
+
+					if (quitFromSwitch) break;
+
+					if (Chessboard_isHighlightable(cb, pos, turn)) {
+						highlightedPiece = pos;
+						highlightedPieceMoves = Chessboard_computePieceMoves(cb, pos);
+					} else {
+						highlightedPiece = 64;
+						if (highlightedPieceMoves != NULL) {
+							MovesArray_destroy(highlightedPieceMoves);
+							highlightedPieceMoves = NULL;
+						}
+					}
 				}
 				break;
 			}
@@ -50,7 +82,7 @@ int main(int argc, char* args[]) {
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
 		SDL_RenderFillRect(renderer, NULL);
 
-		Chessboard_draw(cb, renderer, highlightedPiece);
+		Chessboard_draw(cb, renderer, highlightedPiece, highlightedPieceMoves);
 		SDL_RenderPresent(renderer);
 	}
 
