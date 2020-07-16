@@ -143,11 +143,12 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 		uint64_t singlePushLocationMask = 1ull << singlePushLocation;
 		uint64_t doublePushLocationMask = 1ull << doublePushLocation;
+		uint64_t initialRankMask = ((1ull << 8) - 1) << (pieceType == 0 ? 8 : 30);
 
 		if ((singlePushLocationMask & emptyMask) == 0) {
 			Move singlePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = singlePushLocation, .isCapture = false};
 			MovesArray_pushMove(moves, singlePushMove);
-			if ((doublePushLocationMask & emptyMask) == 0) {
+			if ((doublePushLocationMask & emptyMask) == 0 && (pieceLocationMask & initialRankMask) != 0) {
 				Move doublePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = doublePushLocation, .isCapture = false};
 				MovesArray_pushMove(moves, doublePushMove);
 			}
