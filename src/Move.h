@@ -13,6 +13,9 @@ typedef struct {
 	uint8_t dst;
 
 	bool isCapture;
+
+	bool isCastling;
+	bool isLeftCastling;
 } Move;
 
 
