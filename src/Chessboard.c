@@ -141,33 +141,37 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		uint64_t initialRankMask = ((1ull << 8) - 1) << (pieceType == 0 ? 8 : 48);
 
 		if ((singlePushLocationMask & emptyMask) == 0) {
-			Move singlePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = singlePushLocation, .isCapture = false, .isCastling = false, .isLeftCastling = false};
+			Move singlePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = singlePushLocation, .isCapture = false, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 			MovesArray_pushMove(moves, singlePushMove);
 			if ((doublePushLocationMask & emptyMask) == 0 && (pieceLocationMask & initialRankMask) != 0) {
-				Move doublePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = doublePushLocation, .isCapture = false, .isCastling = false, .isLeftCastling = false};
+				Move doublePushMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = doublePushLocation, .isCapture = false, .isEnPassant = true, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, doublePushMove);
 			}
 		}
 
 		uint8_t leftCaptureLocation, rightCaptureLocation;
+
 		if (pieceType == 0) {
 			leftCaptureLocation = pieceLocation + 7;
 			rightCaptureLocation = pieceLocation + 9;
 		} else {
-			leftCaptureLocation = pieceLocation - 7;
-			rightCaptureLocation = pieceLocation - 9;
+			rightCaptureLocation = pieceLocation - 7;
+			leftCaptureLocation = pieceLocation - 9;
 		}
 
+		uint64_t leftCaptureLocationMask = 1ull << leftCaptureLocation;
+		uint64_t rightCaptureLocationMask = 1ull << rightCaptureLocation;
+
 		if (leftCaptureLocation / 8 != pieceLocation / 8) {
-			if (((1ull << leftCaptureLocation) & emptyEnemyMask) != 0) {
-				Move leftCaptureMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = leftCaptureLocation, .isCapture = true, .isCastling = false, .isLeftCastling = false};
+			if ((leftCaptureLocationMask & emptyEnemyMask) != 0 || (chessboard->lastMove.isEnPassant && chessboard->lastMove.dst == pieceLocation - 1)) {
+				Move leftCaptureMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = leftCaptureLocation, .isCapture = true, .isEnPassant = chessboard->lastMove.isEnPassant, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, leftCaptureMove);
 			}
 		}
 
 		if (rightCaptureLocation / 8 != pieceLocation / 8) {
-			if (((1ull << rightCaptureLocation) & emptyEnemyMask) != 0) {
-				Move rightCaptureMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = rightCaptureLocation, .isCapture = true, .isCastling = false, .isLeftCastling = false};
+			if ((rightCaptureLocationMask & emptyEnemyMask) != 0 || (chessboard->lastMove.isEnPassant && chessboard->lastMove.dst == pieceLocation + 1)) {
+				Move rightCaptureMove = {.srcPieceType = pieceType, .src = pieceLocation, .dst = rightCaptureLocation, .isCapture = true, .isEnPassant = chessboard->lastMove.isEnPassant, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, rightCaptureMove);
 			}
 		}
@@ -217,7 +221,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		movePosition = 0;
 		while (movesMask) {
 			if (movesMask & 1) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 			movesMask >>= 1;
@@ -229,7 +233,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		movePosition = 0;
 		while (capturesMask) {
 			if (capturesMask & 1) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 			capturesMask >>= 1;
@@ -253,12 +257,12 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			uint64_t movePositionMask = 1ull << movePosition;
 
 			if ((movePositionMask & emptyMask) == 0) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 
 			if ((movePositionMask & emptyEnemyMask) != 0) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 		}
@@ -388,7 +392,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		movePosition = 0;
 		while (movesMask) {
 			if (movesMask & 1) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 			movesMask >>= 1;
@@ -398,7 +402,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		movePosition = 0;
 		while (capturesMask) {
 			if (capturesMask & 1) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 			capturesMask >>= 1;
@@ -454,7 +458,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		movePosition = 0;
 		while (movesMask) {
 			if (movesMask & 1) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 			movesMask >>= 1;
@@ -579,7 +583,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		movePosition = 0;
 		while (movesMask) {
 			if (movesMask & 1) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 			movesMask >>= 1;
@@ -589,7 +593,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		movePosition = 0;
 		while (capturesMask) {
 			if (capturesMask & 1) {
-				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isCastling = false, .isLeftCastling = false};
+				Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 				MovesArray_pushMove(moves, move);
 			}
 			capturesMask >>= 1;
@@ -608,12 +612,12 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 				uint64_t movePositionMask = (1ull << movePosition);
 
 				if ((movePositionMask & emptyMask) == 0) {
-					Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isCastling = false, .isLeftCastling = false};
+					Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = false, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 					MovesArray_pushMove(moves, move);
 				}
 
 				if ((movePositionMask & emptyEnemyMask) != 0) {
-					Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isCastling = false, .isLeftCastling = false};
+					Move move = {.srcPieceType = pieceType, .src = pieceLocation, .dst = movePosition, .isCapture = true, .isEnPassant = false, .isCastling = false, .isLeftCastling = false};
 					MovesArray_pushMove(moves, move);
 				}
 			}
@@ -652,7 +656,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((pieceLocationMask & kingInitialLocationMask) && (rooksLocationMask & leftRookInitialLocationMask)) {
 				if ((~emptyMask) & leftEmptySquaresMask) {
 					if (!Chessboard_squareAttacked(chessboard, attacker, pieceLocation - 1) && !Chessboard_squareAttacked(chessboard, attacker, pieceLocation - 2)) {
-						Move move = {.srcPieceType = pieceType, .src = leftMoveSrc, .dst = leftMoveDst, .isCapture = false, .isCastling = true, .isLeftCastling = true};
+						Move move = {.srcPieceType = pieceType, .src = leftMoveSrc, .dst = leftMoveDst, .isCapture = false, .isEnPassant = false, .isCastling = true, .isLeftCastling = true};
 						MovesArray_pushMove(moves, move);
 					}
 				}
@@ -661,7 +665,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			if ((pieceLocationMask & kingInitialLocationMask) && (rooksLocationMask & rightRookInitialLocationMask)) {
 				if ((~emptyMask) & rightEmptySquaresMask) {
 					if (!Chessboard_squareAttacked(chessboard, attacker, pieceLocation + 1) && !Chessboard_squareAttacked(chessboard, attacker, pieceLocation + 2)) {
-						Move move = {.srcPieceType = pieceType, .src = rightMoveSrc, .dst = rightMoveDst, .isCapture = false, .isCastling = true, .isLeftCastling = false};
+						Move move = {.srcPieceType = pieceType, .src = rightMoveSrc, .dst = rightMoveDst, .isCapture = false, .isEnPassant = false, .isCastling = true, .isLeftCastling = false};
 						MovesArray_pushMove(moves, move);
 					}
 				}
@@ -695,11 +699,17 @@ void Chessboard_applyMove(Move move, Chessboard *chessboard) {
 	}
 
 	if (move.isCapture) {
-		uint64_t captureMask = ~(1ull << move.dst);
+		uint64_t captureMask;
+		if (!move.isEnPassant)
+			captureMask = ~(1ull << move.dst);
+		else
+			captureMask = ~(1ull << chessboard->lastMove.dst);
+
 		for (uint8_t i = 0; i < 12; ++i) chessboard->bitBoard[i] &= captureMask;
 	}
 	uint64_t moveMask = (1ull << move.src) | (1ull << move.dst);
 	chessboard->bitBoard[move.srcPieceType] ^= moveMask;
+	chessboard->lastMove = move;
 }
 
 bool Chessboard_squareAttacked(Chessboard *chessboard, uint8_t attacker, uint8_t squareLocation) {

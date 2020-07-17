@@ -14,6 +14,7 @@
 
 typedef struct {
 	uint64_t bitBoard[12];
+	Move lastMove;
 	SDL_Texture *spriteMap;
 } Chessboard;
 

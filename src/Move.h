@@ -14,6 +14,8 @@ typedef struct {
 
 	bool isCapture;
 
+	bool isEnPassant;
+
 	bool isCastling;
 	bool isLeftCastling;
 } Move;
