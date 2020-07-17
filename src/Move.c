@@ -1,13 +1,14 @@
 #include "Move.h"
+#include <stdio.h>
 
 MovesArray *MovesArray_create() {
-	MovesArray *movesArray = malloc(sizeof(MovesArray*));
+	MovesArray *mArr = malloc(sizeof(MovesArray));
 
-	movesArray->length = 0;
-	movesArray->capacity = 5;
-	movesArray->moves = malloc(movesArray->capacity * sizeof(Move));
+	mArr->length = 0;
+	mArr->capacity = 5;
+	mArr->moves = malloc(mArr->capacity * sizeof(Move));
 
-	return movesArray;
+	return mArr;
 }
 
 void MovesArray_pushMove(MovesArray *mArr, Move move) {
@@ -29,7 +30,7 @@ uint32_t MovesArray_length(MovesArray *mArr) {
 	return mArr->length;
 }
 
-void *MovesArray_destroy(MovesArray *mArr) {
+void MovesArray_destroy(MovesArray *mArr) {
 	free(mArr->moves);
 	mArr->moves = NULL;
 

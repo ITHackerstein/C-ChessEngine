@@ -29,6 +29,6 @@ extern MovesArray *MovesArray_create();
 extern void MovesArray_pushMove(MovesArray *, Move);
 extern Move MovesArray_getMove(MovesArray *, uint32_t index);
 extern uint32_t MovesArray_length(MovesArray *);
-extern void *MovesArray_destroy(MovesArray *);
+extern void MovesArray_destroy(MovesArray *);
 
 #endif
