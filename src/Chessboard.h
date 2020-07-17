@@ -14,7 +14,6 @@
 
 typedef struct {
 	uint64_t bitBoard[12];
-	uint64_t knightMoves[64];
 	SDL_Texture *spriteMap;
 } Chessboard;
 
