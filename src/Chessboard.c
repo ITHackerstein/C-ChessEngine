@@ -619,7 +619,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			}
 		}
 
-		if (checkCastling && !Chessboard_kingInCheck(chessboard, pieceType == 5 ? 1 : 0)) {
+		if (checkCastling && !Chessboard_kingInCheck(chessboard, pieceType == 5 ? 0 : 1)) {
 			uint64_t rooksLocationMask, kingInitialLocationMask, leftRookInitialLocationMask, rightRookInitialLocationMask, leftEmptySquaresMask, rightEmptySquaresMask;
 			uint8_t leftMoveSrc, rightMoveSrc, leftMoveDst, rightMoveDst, attacker;
 
