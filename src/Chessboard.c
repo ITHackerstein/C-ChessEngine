@@ -103,7 +103,7 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t hig
 	}
 }
 
-MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLocation) {
+MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLocation, bool checkCastling) {
 	uint64_t pieceLocationMask = 1ull << pieceLocation;
 
 	uint8_t pieceType = -1;
@@ -619,46 +619,52 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			}
 		}
 
-		uint64_t rooksLocationMask, kingInitialLocationMask, leftRookInitialLocationMask, rightRookInitialLocationMask, leftEmptySquaresMask, rightEmptySquaresMask;
-		uint8_t leftMoveSrc, rightMoveSrc, leftMoveDst, rightMoveDst;
+		if (checkCastling && !Chessboard_kingInCheck(chessboard, pieceType == 5 ? 1 : 0)) {
+			uint64_t rooksLocationMask, kingInitialLocationMask, leftRookInitialLocationMask, rightRookInitialLocationMask, leftEmptySquaresMask, rightEmptySquaresMask;
+			uint8_t leftMoveSrc, rightMoveSrc, leftMoveDst, rightMoveDst, attacker;
 
-		if (pieceType == 5) {
-			rooksLocationMask = chessboard->bitBoard[1];
-			kingInitialLocationMask = 0x10ull;
-			leftRookInitialLocationMask = 1ull;
-			rightRookInitialLocationMask = 0x80ull;
-			leftEmptySquaresMask = 0xdull;
-			rightEmptySquaresMask = 0x40ull;
-			leftMoveSrc = 0;
-			rightMoveSrc = 7;
-			leftMoveDst = 2;
-			rightMoveDst = 6;
-		} else {
-			rooksLocationMask = chessboard->bitBoard[7];
-			kingInitialLocationMask = 0x1000000000000000ull;
-			leftRookInitialLocationMask = 0x100000000000000ull;
-			rightRookInitialLocationMask = 0x8000000000000000ull;
-			leftEmptySquaresMask = 0xd00000000000000ull;
-			rightEmptySquaresMask = 0x4000000000000000ull;
-			leftMoveSrc = 56;
-			rightMoveSrc = 63;
-			leftMoveDst = 58;
-			rightMoveDst = 62;
-		}
-
-		// FIXME: check if squares are attacked
-
-		if ((pieceLocationMask & kingInitialLocationMask) && (rooksLocationMask & leftRookInitialLocationMask)) {
-			if ((~emptyMask) & leftEmptySquaresMask) {
-				Move move = {.srcPieceType = pieceType, .src = leftMoveSrc, .dst = leftMoveDst, .isCapture = false, .isCastling = true, .isLeftCastling = true};
-				MovesArray_pushMove(moves, move);
+			if (pieceType == 5) {
+				rooksLocationMask = chessboard->bitBoard[1];
+				kingInitialLocationMask = 0x10ull;
+				leftRookInitialLocationMask = 1ull;
+				rightRookInitialLocationMask = 0x80ull;
+				leftEmptySquaresMask = 0xdull;
+				rightEmptySquaresMask = 0x40ull;
+				leftMoveSrc = 0;
+				rightMoveSrc = 7;
+				leftMoveDst = 2;
+				rightMoveDst = 6;
+				attacker = 1;
+			} else {
+				rooksLocationMask = chessboard->bitBoard[7];
+				kingInitialLocationMask = 0x1000000000000000ull;
+				leftRookInitialLocationMask = 0x100000000000000ull;
+				rightRookInitialLocationMask = 0x8000000000000000ull;
+				leftEmptySquaresMask = 0xd00000000000000ull;
+				rightEmptySquaresMask = 0x4000000000000000ull;
+				leftMoveSrc = 56;
+				rightMoveSrc = 63;
+				leftMoveDst = 58;
+				rightMoveDst = 62;
+				attacker = 0;
 			}
-		}
 
-		if ((pieceLocationMask & kingInitialLocationMask) && (rooksLocationMask & rightRookInitialLocationMask)) {
-			if ((~emptyMask) & rightEmptySquaresMask) {
-				Move move = {.srcPieceType = pieceType, .src = rightMoveSrc, .dst = rightMoveDst, .isCapture = false, .isCastling = true, .isLeftCastling = false};
-				MovesArray_pushMove(moves, move);
+			if ((pieceLocationMask & kingInitialLocationMask) && (rooksLocationMask & leftRookInitialLocationMask)) {
+				if ((~emptyMask) & leftEmptySquaresMask) {
+					if (!Chessboard_squareAttacked(chessboard, attacker, pieceLocation - 1) && !Chessboard_squareAttacked(chessboard, attacker, pieceLocation - 2)) {
+						Move move = {.srcPieceType = pieceType, .src = leftMoveSrc, .dst = leftMoveDst, .isCapture = false, .isCastling = true, .isLeftCastling = true};
+						MovesArray_pushMove(moves, move);
+					}
+				}
+			}
+
+			if ((pieceLocationMask & kingInitialLocationMask) && (rooksLocationMask & rightRookInitialLocationMask)) {
+				if ((~emptyMask) & rightEmptySquaresMask) {
+					if (!Chessboard_squareAttacked(chessboard, attacker, pieceLocation + 1) && !Chessboard_squareAttacked(chessboard, attacker, pieceLocation + 2)) {
+						Move move = {.srcPieceType = pieceType, .src = rightMoveSrc, .dst = rightMoveDst, .isCapture = false, .isCastling = true, .isLeftCastling = false};
+						MovesArray_pushMove(moves, move);
+					}
+				}
 			}
 		}
 	}
@@ -694,4 +700,60 @@ void Chessboard_applyMove(Move move, Chessboard *chessboard) {
 	}
 	uint64_t moveMask = (1ull << move.src) | (1ull << move.dst);
 	chessboard->bitBoard[move.srcPieceType] ^= moveMask;
+}
+
+bool Chessboard_squareAttacked(Chessboard *chessboard, uint8_t attacker, uint8_t squareLocation) {
+	uint64_t attackerMask = 0;
+	for (uint8_t i = attacker * 6; i < attacker * 6 + 6; ++i) attackerMask |= chessboard->bitBoard[i];
+
+	uint8_t pieceLocation = 0;
+	while (attackerMask) {
+		if (attackerMask & 1) {
+			MovesArray *moves = Chessboard_computePieceMoves(chessboard, pieceLocation, false);
+
+			if (moves != NULL) {
+				for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
+					Move move = MovesArray_getMove(moves, i);
+					if (move.dst == squareLocation) {
+						MovesArray_destroy(moves);
+						return true;
+					}
+				}
+				MovesArray_destroy(moves);
+			}
+		}
+		pieceLocation++;
+		attackerMask >>= 1;
+	}
+
+	return false;
+}
+
+bool Chessboard_kingInCheck(Chessboard *chessboard, uint8_t attacker) {
+	uint64_t attackerMask = 0;
+	for (uint8_t i = attacker * 6; i < attacker * 6 + 6; ++i) attackerMask |= chessboard->bitBoard[i];
+
+	uint8_t attackedKingLocation = attacker == 0 ? 60 : 4;
+
+	uint8_t pieceLocation = 0;
+	while (attackerMask) {
+		if (attackerMask & 1) {
+			MovesArray *moves = Chessboard_computePieceMoves(chessboard, pieceLocation, false);
+
+			if (moves != NULL) {
+				for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
+					Move move = MovesArray_getMove(moves, i);
+					if (move.dst == attackedKingLocation) {
+						MovesArray_destroy(moves);
+						return true;
+					}
+				}
+				MovesArray_destroy(moves);
+			}
+		}
+		pieceLocation++;
+		attackerMask >>= 1;
+	}
+
+	return false;
 }
