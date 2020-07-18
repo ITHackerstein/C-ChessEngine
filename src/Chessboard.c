@@ -767,3 +767,9 @@ bool Chessboard_kingInCheck(Chessboard *chessboard, uint8_t attacker) {
 
 	return false;
 }
+
+void Chessboard_destroy(Chessboard *chessboard) {
+	SDL_DestroyTexture(chessboard->spriteMap);
+
+	free(chessboard);
+}

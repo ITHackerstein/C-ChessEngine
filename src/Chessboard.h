@@ -24,10 +24,11 @@ static uint8_t MS1B(uint64_t n);
 
 extern Chessboard *Chessboard_create(SDL_Renderer *);
 extern void Chessboard_draw(Chessboard *, SDL_Renderer *, uint8_t highlightedPiece, MovesArray *highlightedPieceMoves);
-extern MovesArray *Chessboard_computePieceMoves(Chessboard *, uint8_t pieceLocation, bool checkCastling);
+extern MovesArray *Chessboard_computePieceMoves(Chessboard *, uint8_t pieceLocation, bool checkCastling, bool checkNextMoveCheck);
 extern bool Chessboard_isHighlightable(Chessboard *, uint8_t pieceLocation, uint8_t turn);
 extern void Chessboard_applyMove(Move, Chessboard *);
 extern bool Chessboard_squareAttacked(Chessboard *, uint8_t attacker, uint8_t squareLocation);
 extern bool Chessboard_kingInCheck(Chessboard *, uint8_t kingType);
+extern void Chessboard_destroy(Chessboard *);
 
 #endif
