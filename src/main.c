@@ -21,7 +21,7 @@ int main(int argc, char* args[]) {
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
 	if (window == NULL) {
-		fprintf(stderr, "Erroring during creation of the window!: %s\n", SDL_GetError());
+		fprintf(stderr, "Error during creation of the window!: %s\n", SDL_GetError());
 		return 1;
 	}
 
