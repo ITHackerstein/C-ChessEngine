@@ -67,7 +67,7 @@ int main(int argc, char* args[]) {
 
 					if (Chessboard_isHighlightable(cb, pos, turn)) {
 						highlightedPiece = pos;
-						highlightedPieceMoves = Chessboard_computePieceMoves(cb, pos, true);
+						highlightedPieceMoves = Chessboard_computePieceMoves(cb, pos, true, true);
 					} else {
 						highlightedPiece = 64;
 						if (highlightedPieceMoves != NULL) {
