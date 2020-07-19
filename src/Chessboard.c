@@ -126,8 +126,8 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 	uint64_t emptyEnemyMask = pieceType < 6 ? emptyBlackMask : emptyWhiteMask;
 
-	bool whiteKingInCheck = checkNextMoveCheck ? Chessboard_kingInCheck(chessboard, 1) : false;
-	bool blackKingInCheck = checkNextMoveCheck ? Chessboard_kingInCheck(chessboard, 0) : false;
+	bool whiteKingInCheck = checkNextMoveCheck ? Chessboard_kingInCheck(chessboard, 5) : false;
+	bool blackKingInCheck = checkNextMoveCheck ? Chessboard_kingInCheck(chessboard, 11) : false;
 
 	if ((pieceType == 0 && !whiteKingInCheck) || (pieceType == 6 && !blackKingInCheck)) {
 		uint8_t singlePushLocation, doublePushLocation;
@@ -626,7 +626,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			}
 		}
 
-		if (checkCastling && !Chessboard_kingInCheck(chessboard, pieceType == 5 ? 1 : 0)) {
+		if (checkCastling && !Chessboard_kingInCheck(chessboard, pieceType)) {
 			uint64_t rooksLocationMask, kingInitialLocationMask, leftRookInitialLocationMask, rightRookInitialLocationMask, leftEmptySquaresMask, rightEmptySquaresMask;
 			uint8_t leftMoveSrc, rightMoveSrc, leftMoveDst, rightMoveDst, attacker;
 
@@ -680,20 +680,13 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 	if (movingSideKingInCheck) {
 		MovesArray *finalMoves = MovesArray_create();
+		uint8_t kingType = pieceType < 6 ? 5 : 11;
 
 		for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
-			Chessboard *newState = malloc(sizeof(Chessboard));
-			memcpy(newState, chessboard, sizeof(Chessboard));
-			newState->spriteMap = NULL;
-
 			Move move = MovesArray_getMove(moves, i);
-			Chessboard_applyMove(move, newState);
 
-			if (Chessboard_kingInCheck(newState, pieceType == 5 ? 1 : 0)) continue;
-
-			MovesArray_pushMove(finalMoves, move);
-
-			Chessboard_destroy(newState);
+			if (Chessboard_isMoveLegal(chessboard, move))
+				MovesArray_pushMove(finalMoves, move);
 		}
 
 		MovesArray_destroy(moves);
@@ -715,7 +708,7 @@ bool Chessboard_isHighlightable(Chessboard *chessboard, uint8_t pieceLocation, u
 	return false;
 }
 
-void Chessboard_applyMove(Move move, Chessboard *chessboard) {
+void Chessboard_applyMove(Chessboard *chessboard, Move move) {
 	if (move.isCastling) {
 		chessboard->bitBoard[move.srcPieceType] = 1ull << move.dst;
 		if (move.isLeftCastling)
@@ -767,11 +760,13 @@ bool Chessboard_squareAttacked(Chessboard *chessboard, uint8_t attacker, uint8_t
 	return false;
 }
 
-bool Chessboard_kingInCheck(Chessboard *chessboard, uint8_t attacker) {
-	uint64_t attackerMask = 0;
-	for (uint8_t i = attacker * 6; i < attacker * 6 + 6; ++i) attackerMask |= chessboard->bitBoard[i];
+bool Chessboard_kingInCheck(Chessboard *chessboard, uint8_t kingType) {
+	uint64_t attackerOff = kingType == 5 ? 6 : 0;
 
-	uint64_t kingMask = chessboard->bitBoard[attacker == 0 ? 11 : 5];
+	uint64_t attackerMask = 0;
+	for (uint8_t i = attackerOff; i < attackerOff + 6; ++i) attackerMask |= chessboard->bitBoard[i];
+
+	uint64_t kingMask = chessboard->bitBoard[kingType];
 
 	uint8_t attackedKingLocation = 0;
 	while (kingMask) {
@@ -807,4 +802,56 @@ void Chessboard_destroy(Chessboard *chessboard) {
 	SDL_DestroyTexture(chessboard->spriteMap);
 
 	free(chessboard);
+}
+
+bool Chessboard_isMoveLegal(Chessboard *chessboard, Move move) {
+	uint8_t kingType = move.srcPieceType < 6 ? 5 : 11;
+
+	Chessboard *newState = malloc(sizeof(Chessboard));
+	memcpy(newState, chessboard, sizeof(Chessboard));
+	newState->spriteMap = NULL;
+
+	Chessboard_applyMove(newState, move);
+
+	if (Chessboard_kingInCheck(newState, kingType)) {
+		Chessboard_destroy(newState);
+		return false;
+	} else {
+		Chessboard_destroy(newState);
+		return true;
+	}
+}
+
+bool Chessboard_isCheckmate(Chessboard *chessboard, uint8_t kingType) {
+	uint8_t attacker = kingType == 5 ? 0 : 1;
+
+	return Chessboard_kingInCheck(chessboard, kingType) && !Chessboard_hasLegalMoves(chessboard, attacker);
+}
+
+bool Chessboard_isStalemate(Chessboard *chessboard) {
+	return (!Chessboard_kingInCheck(chessboard, 5) && !Chessboard_hasLegalMoves(chessboard, 0)) || (!Chessboard_kingInCheck(chessboard, 11) && !Chessboard_hasLegalMoves(chessboard, 1));
+}
+
+bool Chessboard_hasLegalMoves(Chessboard *chessboard, uint8_t attacker) {
+	uint64_t attackerMask = 0;
+
+	for (uint8_t i = attacker * 6; i < attacker * 6 + 6; ++i) attackerMask |= chessboard->bitBoard[i];
+
+	uint8_t piecePosition = 0;
+	while (attackerMask) {
+		if (attackerMask & 1) {
+			MovesArray *moves = Chessboard_computePieceMoves(chessboard, piecePosition, false, false);
+			for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
+				if (Chessboard_isMoveLegal(chessboard, MovesArray_getMove(moves, i))) {
+					MovesArray_destroy(moves);
+					return true;
+				}
+			}
+			MovesArray_destroy(moves);
+		}
+		piecePosition++;
+		attackerMask >>= 1;
+	}
+
+	return false;
 }
