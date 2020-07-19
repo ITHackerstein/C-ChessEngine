@@ -34,6 +34,33 @@ int main(int argc, char* args[]) {
 	MovesArray *highlightedPieceMoves = NULL;
 
 	while (running) {
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
+		SDL_RenderFillRect(renderer, NULL);
+
+		Chessboard_draw(cb, renderer, highlightedPiece, highlightedPieceMoves);
+		SDL_RenderPresent(renderer);
+
+		if (Chessboard_isCheckmate(cb, 5)) {
+			printf("Checkmate! Black wins. Closing the window in 2 seconds...\n");
+			running = false;
+			SDL_Delay(2000);
+			continue;
+		}
+
+		if (Chessboard_isCheckmate(cb, 11)) {
+			printf("Checkmate! White wins. Closing the window in 2 seconds...\n");
+			running = false;
+			SDL_Delay(2000);
+			continue;
+		}
+
+		if (Chessboard_isStalemate(cb)) {
+			printf("Stalemate! Closing the window in 2 seconds...\n");
+			running = false;
+			SDL_Delay(2000);
+			continue;
+		}
+
 		SDL_Event evt;
 		while (SDL_PollEvent(&evt)) {
 			switch (evt.type) {
@@ -52,7 +79,7 @@ int main(int argc, char* args[]) {
 						for (uint8_t i = 0; i < MovesArray_length(highlightedPieceMoves); ++i) {
 							Move move = MovesArray_getMove(highlightedPieceMoves, i);
 							if (move.dst == pos) {
-								Chessboard_applyMove(move, cb);
+								Chessboard_applyMove(cb, move);
 								highlightedPiece = 64;
 								MovesArray_destroy(highlightedPieceMoves);
 								highlightedPieceMoves = NULL;
@@ -79,14 +106,9 @@ int main(int argc, char* args[]) {
 				break;
 			}
 		}
-
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
-		SDL_RenderFillRect(renderer, NULL);
-
-		Chessboard_draw(cb, renderer, highlightedPiece, highlightedPieceMoves);
-		SDL_RenderPresent(renderer);
 	}
 
+	Chessboard_destroy(cb);
 	SDL_DestroyWindow(window);
 
 	SDL_Quit();
