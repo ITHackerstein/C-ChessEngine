@@ -103,7 +103,7 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t hig
 	}
 }
 
-MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLocation, bool checkCastling, bool checkNextMoveCheck) {
+MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLocation, bool checkCastling, bool checkNextMoveKingInCheck) {
 	uint64_t pieceLocationMask = 1ull << pieceLocation;
 
 	uint8_t pieceType = -1;
@@ -126,8 +126,8 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 	uint64_t emptyEnemyMask = pieceType < 6 ? emptyBlackMask : emptyWhiteMask;
 
-	bool whiteKingInCheck = checkNextMoveCheck ? Chessboard_kingInCheck(chessboard, 5) : false;
-	bool blackKingInCheck = checkNextMoveCheck ? Chessboard_kingInCheck(chessboard, 11) : false;
+	bool whiteKingInCheck = checkNextMoveKingInCheck ? Chessboard_kingInCheck(chessboard, 5) : false;
+	bool blackKingInCheck = checkNextMoveKingInCheck ? Chessboard_kingInCheck(chessboard, 11) : false;
 
 	if ((pieceType == 0 && !whiteKingInCheck) || (pieceType == 6 && !blackKingInCheck)) {
 		uint8_t singlePushLocation, doublePushLocation;
@@ -697,6 +697,31 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 	return moves;
 }
 
+MovesArray *Chessboard_computeAllMoves(Chessboard *chessboard, uint8_t side, bool checkCastling, bool checkNextMoveKingInCheck) {
+	uint64_t movingSideMask = 0;
+	for (uint8_t i = side * 6; i < side * 6 + 6; ++i) movingSideMask |= chessboard->bitBoard[i];
+
+	MovesArray *allMoves = MovesArray_create();
+
+	uint8_t pieceLocation = 0;
+	while (movingSideMask) {
+		if (movingSideMask & 1) {
+			MovesArray *pieceMoves = Chessboard_computePieceMoves(chessboard, pieceLocation, checkCastling, checkNextMoveKingInCheck);
+
+			if (pieceMoves != NULL) {
+				for (uint8_t i = 0; i < MovesArray_length(pieceMoves); ++i)
+					MovesArray_pushMove(allMoves, MovesArray_getMove(pieceMoves, i));
+
+				MovesArray_destroy(pieceMoves);
+			}
+		}
+		pieceLocation++;
+		movingSideMask >>= 1;
+	}
+
+	return allMoves;
+}
+
 bool Chessboard_isHighlightable(Chessboard *chessboard, uint8_t pieceLocation, uint8_t turn) {
 	uint8_t colorOffset = turn ? 6 : 0;
 	uint64_t pieceLocationMask = 1ull << pieceLocation;
@@ -711,10 +736,13 @@ bool Chessboard_isHighlightable(Chessboard *chessboard, uint8_t pieceLocation, u
 void Chessboard_applyMove(Chessboard *chessboard, Move move) {
 	if (move.isCastling) {
 		chessboard->bitBoard[move.srcPieceType] = 1ull << move.dst;
+
+		uint8_t rookType = move.srcPieceType == 5 ? 1 : 7;
+
 		if (move.isLeftCastling)
-			chessboard->bitBoard[move.srcPieceType == 5 ? 1 : 7] ^= (1ull << move.src) | (1ull << (move.dst + 1));
+			chessboard->bitBoard[rookType] ^= (1ull << move.src) | (1ull << (move.dst + 1));
 		else
-			chessboard->bitBoard[move.srcPieceType == 5 ? 1 : 7] ^= (1ull << move.src) | (1ull << (move.dst - 1));
+			chessboard->bitBoard[rookType] ^= (1ull << move.src) | (1ull << (move.dst - 1));
 
 		return;
 	}
@@ -728,44 +756,32 @@ void Chessboard_applyMove(Chessboard *chessboard, Move move) {
 
 		for (uint8_t i = 0; i < 12; ++i) chessboard->bitBoard[i] &= captureMask;
 	}
+
 	uint64_t moveMask = (1ull << move.src) | (1ull << move.dst);
 	chessboard->bitBoard[move.srcPieceType] ^= moveMask;
 	chessboard->lastMove = move;
 }
 
 bool Chessboard_squareAttacked(Chessboard *chessboard, uint8_t attacker, uint8_t squareLocation) {
-	uint64_t attackerMask = 0;
-	for (uint8_t i = attacker * 6; i < attacker * 6 + 6; ++i) attackerMask |= chessboard->bitBoard[i];
+	MovesArray *moves = Chessboard_computeAllMoves(chessboard, attacker, false, false);
 
-	uint8_t pieceLocation = 0;
-	while (attackerMask) {
-		if (attackerMask & 1) {
-			MovesArray *moves = Chessboard_computePieceMoves(chessboard, pieceLocation, false, false);
+	if (moves != NULL) {
+		for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
+			Move move = MovesArray_getMove(moves, i);
 
-			if (moves != NULL) {
-				for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
-					Move move = MovesArray_getMove(moves, i);
-					if (move.dst == squareLocation) {
-						MovesArray_destroy(moves);
-						return true;
-					}
-				}
+			if (move.dst == squareLocation) {
 				MovesArray_destroy(moves);
+				return true;
 			}
 		}
-		pieceLocation++;
-		attackerMask >>= 1;
+
+		MovesArray_destroy(moves);
 	}
 
 	return false;
 }
 
 bool Chessboard_kingInCheck(Chessboard *chessboard, uint8_t kingType) {
-	uint64_t attackerOff = kingType == 5 ? 6 : 0;
-
-	uint64_t attackerMask = 0;
-	for (uint8_t i = attackerOff; i < attackerOff + 6; ++i) attackerMask |= chessboard->bitBoard[i];
-
 	uint64_t kingMask = chessboard->bitBoard[kingType];
 
 	uint8_t attackedKingLocation = 0;
@@ -775,24 +791,20 @@ bool Chessboard_kingInCheck(Chessboard *chessboard, uint8_t kingType) {
 		kingMask >>= 1;
 	}
 
-	uint8_t pieceLocation = 0;
-	while (attackerMask) {
-		if (attackerMask & 1) {
-			MovesArray *moves = Chessboard_computePieceMoves(chessboard, pieceLocation, false, false);
+	uint8_t attacker = kingType == 5 ? 1 : 0;
 
-			if (moves != NULL) {
-				for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
-					Move move = MovesArray_getMove(moves, i);
-					if (move.dst == attackedKingLocation) {
-						MovesArray_destroy(moves);
-						return true;
-					}
-				}
+	MovesArray *moves = Chessboard_computeAllMoves(chessboard, attacker, false, false);
+
+	if (moves != NULL) {
+		for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
+			Move move = MovesArray_getMove(moves, i);
+
+			if (move.dst == attackedKingLocation) {
 				MovesArray_destroy(moves);
+				return true;
 			}
 		}
-		pieceLocation++;
-		attackerMask >>= 1;
+		MovesArray_destroy(moves);
 	}
 
 	return false;
@@ -833,24 +845,16 @@ bool Chessboard_isStalemate(Chessboard *chessboard) {
 }
 
 bool Chessboard_hasLegalMoves(Chessboard *chessboard, uint8_t attacker) {
-	uint64_t attackerMask = 0;
+	MovesArray *moves = Chessboard_computeAllMoves(chessboard, attacker, true, true);
 
-	for (uint8_t i = attacker * 6; i < attacker * 6 + 6; ++i) attackerMask |= chessboard->bitBoard[i];
-
-	uint8_t piecePosition = 0;
-	while (attackerMask) {
-		if (attackerMask & 1) {
-			MovesArray *moves = Chessboard_computePieceMoves(chessboard, piecePosition, false, false);
-			for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
-				if (Chessboard_isMoveLegal(chessboard, MovesArray_getMove(moves, i))) {
-					MovesArray_destroy(moves);
-					return true;
-				}
+	if (moves != NULL) {
+		for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
+			if (Chessboard_isMoveLegal(chessboard, MovesArray_getMove(moves, i))) {
+				MovesArray_destroy(moves);
+				return true;
 			}
-			MovesArray_destroy(moves);
 		}
-		piecePosition++;
-		attackerMask >>= 1;
+		MovesArray_destroy(moves);
 	}
 
 	return false;

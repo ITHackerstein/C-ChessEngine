@@ -34,5 +34,6 @@ extern bool Chessboard_isMoveLegal(Chessboard *, Move);
 extern bool Chessboard_isCheckmate(Chessboard *, uint8_t kingType);
 extern bool Chessboard_isStalemate(Chessboard *);
 extern bool Chessboard_hasLegalMoves(Chessboard *chessboard, uint8_t attacker);
+extern MovesArray *Chessboard_computeAllMoves(Chessboard *, uint8_t side, bool checkCastling, bool checkNextMoveCheck);
 
 #endif
