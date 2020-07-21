@@ -859,3 +859,14 @@ bool Chessboard_hasLegalMoves(Chessboard *chessboard, uint8_t attacker) {
 
 	return false;
 }
+
+uint8_t Chessboard_countPieces(Chessboard *chessboard, uint8_t pieceType, uint8_t side) {
+	uint64_t pieceMask = chessboard->bitBoard[side * 6 + pieceType];
+
+	uint8_t count = 0;
+	while (pieceMask) {
+		if (pieceMask & 1) count++;
+		pieceMask >>= 1;
+	}
+	return count;
+}
