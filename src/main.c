@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "Chessboard.h"
+#include "AI.h"
 
 const uint32_t WIDTH = 600;
 const uint32_t HEIGHT = 600;
@@ -28,7 +29,7 @@ int main(int argc, char* args[]) {
 	Chessboard *cb = Chessboard_create(renderer);
 
 	bool running = true;
-	uint8_t turn = 0;
+	// uint8_t turn = 0;
 
 	uint8_t highlightedPiece = 64;
 	MovesArray *highlightedPieceMoves = NULL;
@@ -83,7 +84,10 @@ int main(int argc, char* args[]) {
 								highlightedPiece = 64;
 								MovesArray_destroy(highlightedPieceMoves);
 								highlightedPieceMoves = NULL;
-								turn = !turn;
+
+								ChessAI_nextMove(cb);
+
+								// turn = !turn;
 								quitFromSwitch = true;
 								break;
 							}
@@ -92,7 +96,7 @@ int main(int argc, char* args[]) {
 
 					if (quitFromSwitch) break;
 
-					if (Chessboard_isHighlightable(cb, pos, turn)) {
+					if (Chessboard_isHighlightable(cb, pos, /* turn */ 0)) {
 						highlightedPiece = pos;
 						highlightedPieceMoves = Chessboard_computePieceMoves(cb, pos, true, true);
 					} else {
