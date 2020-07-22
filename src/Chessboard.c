@@ -103,7 +103,7 @@ void Chessboard_draw(Chessboard *chessboard, SDL_Renderer *renderer, uint8_t hig
 	}
 }
 
-MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLocation, bool checkCastling, bool checkNextMoveKingInCheck) {
+MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLocation, bool checkCastling, bool onlyLegalMoves) {
 	uint64_t pieceLocationMask = 1ull << pieceLocation;
 
 	uint8_t pieceType = -1;
@@ -126,10 +126,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 
 	uint64_t emptyEnemyMask = pieceType < 6 ? emptyBlackMask : emptyWhiteMask;
 
-	bool whiteKingInCheck = checkNextMoveKingInCheck ? Chessboard_kingInCheck(chessboard, 5) : false;
-	bool blackKingInCheck = checkNextMoveKingInCheck ? Chessboard_kingInCheck(chessboard, 11) : false;
-
-	if ((pieceType == 0 && !whiteKingInCheck) || (pieceType == 6 && !blackKingInCheck)) {
+	if (pieceType == 0 || pieceType == 6) {
 		uint8_t singlePushLocation, doublePushLocation;
 		if (pieceType == 0) {
 			singlePushLocation = pieceLocation + 8;
@@ -676,9 +673,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 		}
 	}
 
-	bool movingSideKingInCheck = pieceType < 6 ? whiteKingInCheck : blackKingInCheck;
-
-	if (movingSideKingInCheck) {
+	if (onlyLegalMoves) {
 		MovesArray *finalMoves = MovesArray_create();
 		uint8_t kingType = pieceType < 6 ? 5 : 11;
 
@@ -697,7 +692,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 	return moves;
 }
 
-MovesArray *Chessboard_computeAllMoves(Chessboard *chessboard, uint8_t side, bool checkCastling, bool checkNextMoveKingInCheck) {
+MovesArray *Chessboard_computeAllMoves(Chessboard *chessboard, uint8_t side, bool checkCastling, bool onlyLegalMoves) {
 	uint64_t movingSideMask = 0;
 	for (uint8_t i = side * 6; i < side * 6 + 6; ++i) movingSideMask |= chessboard->bitBoard[i];
 
@@ -706,7 +701,7 @@ MovesArray *Chessboard_computeAllMoves(Chessboard *chessboard, uint8_t side, boo
 	uint8_t pieceLocation = 0;
 	while (movingSideMask) {
 		if (movingSideMask & 1) {
-			MovesArray *pieceMoves = Chessboard_computePieceMoves(chessboard, pieceLocation, checkCastling, checkNextMoveKingInCheck);
+			MovesArray *pieceMoves = Chessboard_computePieceMoves(chessboard, pieceLocation, checkCastling, onlyLegalMoves);
 
 			if (pieceMoves != NULL) {
 				for (uint8_t i = 0; i < MovesArray_length(pieceMoves); ++i)
