@@ -635,8 +635,8 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 				kingInitialLocationMask = 0x10ull;
 				leftRookInitialLocationMask = 1ull;
 				rightRookInitialLocationMask = 0x80ull;
-				leftEmptySquaresMask = 0xdull;
-				rightEmptySquaresMask = 0x40ull;
+				leftEmptySquaresMask = 0xeull;
+				rightEmptySquaresMask = 0x60ull;
 				leftMoveSrc = 0;
 				rightMoveSrc = 7;
 				leftMoveDst = 2;
@@ -647,8 +647,8 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 				kingInitialLocationMask = 0x1000000000000000ull;
 				leftRookInitialLocationMask = 0x100000000000000ull;
 				rightRookInitialLocationMask = 0x8000000000000000ull;
-				leftEmptySquaresMask = 0xd00000000000000ull;
-				rightEmptySquaresMask = 0x4000000000000000ull;
+				leftEmptySquaresMask = 0xe00000000000000ull;
+				rightEmptySquaresMask = 0x6000000000000000ull;
 				leftMoveSrc = 56;
 				rightMoveSrc = 63;
 				leftMoveDst = 58;
@@ -657,7 +657,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			}
 
 			if ((pieceLocationMask & kingInitialLocationMask) && (rooksLocationMask & leftRookInitialLocationMask)) {
-				if ((~emptyMask) & leftEmptySquaresMask) {
+				if ((emptyMask & leftEmptySquaresMask) == 0) {
 					if (!Chessboard_squareAttacked(chessboard, attacker, pieceLocation - 1) && !Chessboard_squareAttacked(chessboard, attacker, pieceLocation - 2)) {
 						Move move = {.srcPieceType = pieceType, .src = leftMoveSrc, .dst = leftMoveDst, .isCapture = false, .isEnPassant = false, .isCastling = true, .isLeftCastling = true};
 						MovesArray_pushMove(moves, move);
@@ -666,7 +666,7 @@ MovesArray *Chessboard_computePieceMoves(Chessboard *chessboard, uint8_t pieceLo
 			}
 
 			if ((pieceLocationMask & kingInitialLocationMask) && (rooksLocationMask & rightRookInitialLocationMask)) {
-				if ((~emptyMask) & rightEmptySquaresMask) {
+				if ((emptyMask & rightEmptySquaresMask) == 0) {
 					if (!Chessboard_squareAttacked(chessboard, attacker, pieceLocation + 1) && !Chessboard_squareAttacked(chessboard, attacker, pieceLocation + 2)) {
 						Move move = {.srcPieceType = pieceType, .src = rightMoveSrc, .dst = rightMoveDst, .isCapture = false, .isEnPassant = false, .isCastling = true, .isLeftCastling = false};
 						MovesArray_pushMove(moves, move);
@@ -869,4 +869,8 @@ uint8_t Chessboard_countPieces(Chessboard *chessboard, uint8_t pieceType, uint8_
 		pieceMask >>= 1;
 	}
 	return count;
+}
+
+uint64_t Chessboard_getPieceMask(Chessboard *chessboard, uint8_t pieceType, uint8_t side) {
+	return chessboard->bitBoard[side * 6 + pieceType];
 }

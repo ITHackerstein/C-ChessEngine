@@ -36,5 +36,6 @@ extern bool Chessboard_isStalemate(Chessboard *);
 extern bool Chessboard_hasLegalMoves(Chessboard *, uint8_t attacker);
 extern MovesArray *Chessboard_computeAllMoves(Chessboard *, uint8_t side, bool checkCastling, bool checkNextMoveKingInCheck);
 extern uint8_t Chessboard_countPieces(Chessboard *, uint8_t pieceType, uint8_t side);
+extern uint64_t Chessboard_getPieceMask(Chessboard *, uint8_t pieceType, uint8_t side);
 
 #endif

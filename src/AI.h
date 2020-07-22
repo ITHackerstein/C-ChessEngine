@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 #define MOVE_GENERATION_DEPTH 3
+#define VMIRROR(x) x ^ 0x38
 
 static int32_t ChessAI_evaluate(Chessboard *);
 static int32_t ChessAI_MiniMax(Chessboard *, uint8_t depth, int32_t alpha, int32_t beta, uint8_t movingSide);
