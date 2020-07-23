@@ -842,17 +842,7 @@ bool Chessboard_isStalemate(Chessboard *chessboard) {
 bool Chessboard_hasLegalMoves(Chessboard *chessboard, uint8_t attacker) {
 	MovesArray *moves = Chessboard_computeAllMoves(chessboard, attacker, true, true);
 
-	if (moves != NULL) {
-		for (uint8_t i = 0; i < MovesArray_length(moves); ++i) {
-			if (Chessboard_isMoveLegal(chessboard, MovesArray_getMove(moves, i))) {
-				MovesArray_destroy(moves);
-				return true;
-			}
-		}
-		MovesArray_destroy(moves);
-	}
-
-	return false;
+	return moves != NULL && MovesArray_length(moves) > 0;
 }
 
 uint8_t Chessboard_countPieces(Chessboard *chessboard, uint8_t pieceType, uint8_t side) {
